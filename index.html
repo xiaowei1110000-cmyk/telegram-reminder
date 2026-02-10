@@ -100,7 +100,6 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            width: 100%;
             margin-top: 10px;
         }
         
@@ -132,6 +131,24 @@
             background: #e0a800;
         }
         
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
         .reminder-item {
             background: white;
             border-radius: 8px;
@@ -151,15 +168,6 @@
         .reminder-details {
             color: #666;
             font-size: 14px;
-        }
-        
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 12px;
-            cursor: pointer;
         }
         
         .notification {
@@ -189,49 +197,45 @@
             color: #721c24;
         }
         
-        .github-config {
-            background: #24292e;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
+        .notification.info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
         }
         
-        .github-config h3 {
-            color: white;
-            margin-bottom: 15px;
-        }
-        
-        .code-block {
-            background: #1b1f23;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            overflow-x: auto;
-            margin: 15px 0;
-            color: #c9d1d9;
-        }
-        
-        .step {
-            margin-bottom: 25px;
-            padding-left: 40px;
-            position: relative;
-        }
-        
-        .step-number {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 30px;
-            height: 30px;
-            background: #0088cc;
-            color: white;
-            border-radius: 50%;
+        .action-buttons {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .status-offline {
+            background: #dc3545;
         }
         
         footer {
@@ -241,17 +245,72 @@
             border-top: 1px solid #eee;
             margin-top: 20px;
         }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .test-section {
+            background: #e3f2fd;
+            border: 2px solid #bbdefb;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fab fa-github"></i> GitHub定时提醒系统</h1>
-            <p>无需服务器！使用GitHub Actions每天自动发送Telegram提醒</p>
+            <h1><i class="fab fa-telegram"></i> GitHub定时提醒系统</h1>
+            <p>无需服务器！测试发送功能可用</p>
         </header>
         
         <div class="content">
             <div id="notificationArea"></div>
+            
+            <div class="section">
+                <h2><i class="fas fa-cog"></i> 基本配置</h2>
+                
+                <div class="input-group">
+                    <label for="serverUrl">GitHub仓库地址（用于测试）</label>
+                    <input type="text" id="serverUrl" placeholder="https://api.github.com/repos/用户名/仓库名">
+                    <small style="color:#666;">例如：https://api.github.com/repos/yourname/telegram-reminder</small>
+                </div>
+                
+                <button id="testConnectionBtn" class="btn btn-primary">
+                    <i class="fas fa-plug"></i> 测试GitHub连接
+                </button>
+            </div>
+            
+            <div class="section test-section">
+                <h2><i class="fas fa-vial"></i> 测试Telegram发送功能</h2>
+                <p style="margin-bottom: 15px; color: #666;">测试您的Bot配置是否正确</p>
+                
+                <div class="input-group">
+                    <label for="testMessage">测试消息内容</label>
+                    <textarea id="testMessage" rows="3" placeholder="输入测试消息内容...">✅ 测试消息：Telegram提醒系统运行正常！</textarea>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="testSimpleBtn" class="btn btn-success">
+                        <i class="fas fa-paper-plane"></i> 简单测试
+                    </button>
+                    <button id="testWorkflowBtn" class="btn btn-primary">
+                        <i class="fab fa-github"></i> 通过GitHub测试
+                    </button>
+                    <button id="testAllBtn" class="btn btn-warning">
+                        <i class="fas fa-bolt"></i> 完整测试
+                    </button>
+                </div>
+            </div>
             
             <div class="section">
                 <h2><i class="fas fa-plus-circle"></i> 添加提醒类型</h2>
@@ -272,7 +331,7 @@
                     <small style="color:#666;">每几天提醒一次（默认3天）</small>
                 </div>
                 
-                <button id="addReminderBtn" class="btn btn-success">
+                <button id="addReminderBtn" class="btn btn-success btn-block">
                     <i class="fas fa-plus"></i> 添加到提醒列表
                 </button>
             </div>
@@ -286,85 +345,55 @@
                     </div>
                 </div>
                 
-                <div style="margin-top: 20px;">
-                    <button id="generateConfigBtn" class="btn btn-primary">
-                        <i class="fas fa-code"></i> 生成GitHub Actions配置
+                <div class="action-buttons">
+                    <button id="saveToGitHubBtn" class="btn btn-primary">
+                        <i class="fas fa-cloud-upload-alt"></i> 保存到GitHub
                     </button>
-                </div>
-            </div>
-            
-            <div class="github-config">
-                <h3><i class="fab fa-github"></i> GitHub配置步骤</h3>
-                
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h4>创建Telegram Bot</h4>
-                    <p>在Telegram中搜索 @BotFather，创建新Bot并获取Token</p>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h4>添加GitHub Secrets</h4>
-                    <p>在GitHub仓库 Settings → Secrets and variables → Actions 中添加：</p>
-                    <div class="code-block">
-TELEGRAM_BOT_TOKEN: "你的Bot Token"
-TELEGRAM_CHAT_ID: "你的群组Chat ID"
-                    </div>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h4>下载配置文件</h4>
-                    <p id="configContent" class="code-block">
-# 配置文件将在这里生成
-# 1. 点击上方"生成GitHub Actions配置"按钮
-# 2. 复制生成的YAML代码
-# 3. 保存为 .github/workflows/reminder.yml
-                    </p>
-                    <button id="copyConfigBtn" class="btn btn-warning" style="width: auto;">
-                        <i class="fas fa-copy"></i> 复制配置代码
+                    <button id="manualTriggerBtn" class="btn btn-warning">
+                        <i class="fas fa-play"></i> 手动触发提醒
                     </button>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h4>立即测试</h4>
-                    <p>手动触发一次Action测试配置：</p>
-                    <div class="code-block">
-# 在仓库的 Actions 标签页
-# 1. 选择 "Send Telegram Reminder"
-# 2. 点击 "Run workflow"
-# 3. 选择分支并运行
-                    </div>
                 </div>
             </div>
             
             <div class="section">
-                <h2><i class="fas fa-history"></i> 提醒历史记录</h2>
-                <textarea id="reminderData" rows="10" readonly placeholder="提醒数据将在这里显示..."></textarea>
-                <button id="saveDataBtn" class="btn btn-primary">
-                    <i class="fas fa-save"></i> 保存提醒数据到本地
-                </button>
-                <button id="loadDataBtn" class="btn btn-warning" style="margin-top: 10px;">
-                    <i class="fas fa-upload"></i> 从本地加载提醒数据
-                </button>
+                <h2><i class="fas fa-server"></i> 系统状态</h2>
+                
+                <div style="margin-bottom: 15px;">
+                    <p><span class="status-indicator status-offline" id="statusIcon"></span> 
+                       <span id="statusText">等待连接测试...</span>
+                    </p>
+                    <p id="nextRunInfo" style="color:#666; font-size:14px; margin-top:5px;"></p>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="viewLogsBtn" class="btn btn-small">
+                        <i class="fas fa-file-alt"></i> 查看日志
+                    </button>
+                    <button id="viewActionsBtn" class="btn btn-small">
+                        <i class="fab fa-github"></i> GitHub Actions
+                    </button>
+                    <button id="openTelegramBtn" class="btn btn-small">
+                        <i class="fab fa-telegram"></i> 打开Telegram
+                    </button>
+                </div>
             </div>
         </div>
         
         <footer>
-            <p>基于GitHub Actions的定时提醒系统 | 无需服务器 | 完全免费</p>
-            <p>GitHub Actions会在每天11:00（UTC时间）自动运行，发送提醒到Telegram</p>
+            <p>基于GitHub Actions的定时提醒系统 | 包含完整测试功能</p>
+            <p>GitHub Actions会在每天11:00（北京时间）自动运行</p>
         </footer>
     </div>
 
     <script>
         // 存储提醒数据
         let reminders = [];
+        let githubRepo = '';
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             // 设置默认日期为今天
-            document.getElementById('lastUpdated').valueAsDate = new Date();
+            document.getElementById('lastUpdated').valueAsDate = new Date());
             
             // 从本地存储加载数据
             loadFromLocalStorage();
@@ -372,12 +401,183 @@ TELEGRAM_CHAT_ID: "你的群组Chat ID"
             // 更新提醒列表显示
             updateReminderList();
             
-            // 更新提醒数据预览
-            updateReminderData();
+            // 设置事件监听器
+            setupEventListeners();
         });
         
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 测试连接按钮
+            document.getElementById('testConnectionBtn').addEventListener('click', testGitHubConnection);
+            
+            // 简单测试按钮
+            document.getElementById('testSimpleBtn').addEventListener('click', testSimpleTelegram);
+            
+            // GitHub测试按钮
+            document.getElementById('testWorkflowBtn').addEventListener('click', testViaGitHub);
+            
+            // 完整测试按钮
+            document.getElementById('testAllBtn').addEventListener('click', runFullTest);
+            
+            // 添加提醒按钮
+            document.getElementById('addReminderBtn').addEventListener('click', addReminder);
+            
+            // 保存到GitHub按钮
+            document.getElementById('saveToGitHubBtn').addEventListener('click', saveToGitHub);
+            
+            // 手动触发按钮
+            document.getElementById('manualTriggerBtn').addEventListener('click', manualTrigger);
+            
+            // 其他功能按钮
+            document.getElementById('viewLogsBtn').addEventListener('click', viewLogs);
+            document.getElementById('viewActionsBtn').addEventListener('click', viewActions);
+            document.getElementById('openTelegramBtn').addEventListener('click', openTelegram);
+        }
+        
+        // 测试GitHub连接
+        async function testGitHubConnection() {
+            const url = document.getElementById('serverUrl').value.trim();
+            if (!url) {
+                showNotification('请输入GitHub仓库地址', 'error');
+                return;
+            }
+            
+            githubRepo = url;
+            showNotification('正在测试GitHub连接...', 'info');
+            
+            try {
+                // 测试GitHub API连接
+                const response = await fetch(url);
+                if (response.ok) {
+                    showNotification('GitHub连接成功！', 'success');
+                    updateStatus('connected');
+                } else {
+                    showNotification('GitHub连接失败，请检查地址', 'error');
+                }
+            } catch (error) {
+                showNotification(`连接失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 简单测试：直接调用Telegram API（前端限制，需要代理）
+        async function testSimpleTelegram() {
+            showNotification('简单测试需要服务器支持，请使用GitHub测试', 'info');
+            
+            // 显示如何手动测试
+            const testInstructions = `
+            <strong>手动测试步骤：</strong><br>
+            1. 进入你的GitHub仓库：https://github.com/你的用户名/telegram-reminder<br>
+            2. 点击 "Actions" 标签<br>
+            3. 选择 "Send Telegram Reminder"<br>
+            4. 点击 "Run workflow" → "Run workflow"<br>
+            5. 等待运行完成，查看Telegram消息
+            `;
+            
+            showNotification(testInstructions, 'info');
+        }
+        
+        // 通过GitHub Actions测试
+        async function testViaGitHub() {
+            if (!githubRepo) {
+                showNotification('请先测试GitHub连接', 'error');
+                return;
+            }
+            
+            showNotification('正在通过GitHub Actions测试...', 'info');
+            
+            // 解析仓库信息
+            const repoMatch = githubRepo.match(/repos\/([^\/]+)\/([^\/]+)/);
+            if (!repoMatch) {
+                showNotification('GitHub地址格式错误', 'error');
+                return;
+            }
+            
+            const [_, owner, repo] = repoMatch;
+            
+            try {
+                // 触发GitHub Actions workflow_dispatch
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/reminder.yml/dispatches`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'token 你的GitHub Token', // 注意：需要用户授权
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        ref: 'main'
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification('GitHub Actions测试已触发！请检查Actions页面和Telegram', 'success');
+                } else {
+                    showNotification('触发失败，请手动运行Actions', 'error');
+                }
+            } catch (error) {
+                // 如果API调用失败，显示手动操作指南
+                showManualTestGuide(owner, repo);
+            }
+        }
+        
+        // 显示手动测试指南
+        function showManualTestGuide(owner, repo) {
+            const guide = `
+            <strong>手动测试GitHub Actions：</strong><br>
+            1. 访问：https://github.com/${owner}/${repo}/actions<br>
+            2. 在左侧找到 "Send Telegram Reminder"<br>
+            3. 点击 "Run workflow" 按钮<br>
+            4. 选择分支 "main"<br>
+            5. 点击绿色 "Run workflow" 按钮<br>
+            6. 等待运行完成（约30秒）<br>
+            7. 检查Telegram群组是否收到消息
+            `;
+            
+            showNotification(guide, 'info');
+            
+            // 添加打开链接的按钮
+            setTimeout(() => {
+                const actionsUrl = `https://github.com/${owner}/${repo}/actions`;
+                const notification = document.createElement('div');
+                notification.className = 'notification info';
+                notification.innerHTML = `
+                    <i class="fas fa-external-link-alt"></i>
+                    <div>
+                        <strong>快速访问：</strong><br>
+                        <a href="${actionsUrl}" target="_blank" style="color:#007bff; text-decoration:underline;">
+                            点击这里打开Actions页面
+                        </a>
+                    </div>
+                `;
+                document.getElementById('notificationArea').appendChild(notification);
+            }, 1000);
+        }
+        
+        // 运行完整测试
+        async function runFullTest() {
+            showNotification('开始完整测试...', 'info');
+            
+            // 步骤1：检查数据
+            if (reminders.length === 0) {
+                showNotification('请先添加至少一个提醒类型', 'error');
+                return;
+            }
+            
+            // 步骤2：检查GitHub连接
+            if (!githubRepo) {
+                await testGitHubConnection();
+                if (!githubRepo) return;
+            }
+            
+            // 步骤3：保存数据到GitHub
+            await saveToGitHub();
+            
+            // 步骤4：触发GitHub Actions
+            await testViaGitHub();
+            
+            showNotification('完整测试流程已启动！请等待GitHub Actions运行完成', 'success');
+        }
+        
         // 添加提醒
-        document.getElementById('addReminderBtn').addEventListener('click', function() {
+        function addReminder() {
             const name = document.getElementById('reminderName').value.trim();
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
@@ -414,7 +614,6 @@ TELEGRAM_CHAT_ID: "你的群组Chat ID"
             
             // 更新显示
             updateReminderList();
-            updateReminderData();
             
             // 清空表单
             document.getElementById('reminderName').value = '';
@@ -422,7 +621,7 @@ TELEGRAM_CHAT_ID: "你的群组Chat ID"
             document.getElementById('lastUpdated').valueAsDate = new Date();
             
             showNotification(`"${name}" 已添加到提醒列表`, 'success');
-        });
+        }
         
         // 删除提醒
         function deleteReminder(id) {
@@ -430,7 +629,6 @@ TELEGRAM_CHAT_ID: "你的群组Chat ID"
                 reminders = reminders.filter(r => r.id !== id);
                 saveToLocalStorage();
                 updateReminderList();
-                updateReminderData();
                 showNotification('提醒已删除', 'success');
             }
         }
@@ -480,7 +678,7 @@ TELEGRAM_CHAT_ID: "你的群组Chat ID"
                                 上次更新: ${reminder.lastUpdated} | 间隔: ${reminder.days}天 | 下次提醒: ${nextStr} (${status})
                             </div>
                         </div>
-                        <button class="delete-btn" onclick="deleteReminder(${reminder.id})">
+                        <button class="btn btn-small btn-danger" onclick="deleteReminder(${reminder.id})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -490,206 +688,95 @@ TELEGRAM_CHAT_ID: "你的群组Chat ID"
             reminderList.innerHTML = html;
         }
         
-        // 更新提醒数据预览
-        function updateReminderData() {
-            const reminderData = document.getElementById('reminderData');
-            reminderData.value = JSON.stringify(reminders, null, 2);
-        }
-        
-        // 生成GitHub Actions配置
-        document.getElementById('generateConfigBtn').addEventListener('click', function() {
-            if (reminders.length === 0) {
-                showNotification('请先添加至少一个提醒项目', 'error');
+        // 保存到GitHub
+        async function saveToGitHub() {
+            if (!githubRepo) {
+                showNotification('请先测试GitHub连接', 'error');
                 return;
             }
             
-            // 生成配置
-            const config = generateGitHubActionsConfig();
-            document.getElementById('configContent').textContent = config;
+            showNotification('正在保存提醒数据到GitHub...', 'info');
             
-            showNotification('GitHub Actions配置已生成，请复制并保存', 'success');
-        });
+            // 这里实际应该调用GitHub API更新reminders.json文件
+            // 但由于GitHub API需要认证，这里只显示提示
+            
+            const guide = `
+            <strong>手动保存到GitHub：</strong><br>
+            1. 复制下面的JSON数据<br>
+            2. 访问你的GitHub仓库：${githubRepo}<br>
+            3. 点击 reminders.json 文件<br>
+            4. 点击编辑按钮（铅笔图标）<br>
+            5. 粘贴JSON数据<br>
+            6. 点击 Commit changes
+            `;
+            
+            showNotification(guide, 'info');
+            
+            // 显示JSON数据
+            const jsonData = JSON.stringify(reminders, null, 2);
+            setTimeout(() => {
+                const notification = document.createElement('div');
+                notification.className = 'notification info';
+                notification.innerHTML = `
+                    <i class="fas fa-code"></i>
+                    <div>
+                        <strong>提醒数据JSON：</strong><br>
+                        <textarea style="width:100%; height:100px; margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:5px; font-family:monospace;" readonly>${jsonData}</textarea>
+                        <button onclick="copyToClipboard('${jsonData.replace(/\n/g, '\\n').replace(/"/g, '\\"')}')" style="margin-top:5px; padding:5px 10px; background:#007bff; color:white; border:none; border-radius:3px; cursor:pointer;">
+                            复制到剪贴板
+                        </button>
+                    </div>
+                `;
+                document.getElementById('notificationArea').appendChild(notification);
+            }, 500);
+        }
         
-        // 复制配置
-        document.getElementById('copyConfigBtn').addEventListener('click', function() {
-            const configText = document.getElementById('configContent').textContent;
-            navigator.clipboard.writeText(configText).then(() => {
-                showNotification('配置代码已复制到剪贴板', 'success');
-            });
-        });
+        // 手动触发提醒
+        function manualTrigger() {
+            showNotification('手动触发将通过GitHub Actions进行...', 'info');
+            testViaGitHub();
+        }
         
-        // 保存数据到本地
-        document.getElementById('saveDataBtn').addEventListener('click', function() {
-            const dataStr = JSON.stringify(reminders, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'telegram-reminders.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showNotification('提醒数据已保存到本地文件', 'success');
-        });
+        // 查看日志
+        function viewLogs() {
+            if (githubRepo) {
+                const logsUrl = githubRepo.replace('api.github.com/repos', 'github.com') + '/actions';
+                window.open(logsUrl, '_blank');
+            } else {
+                showNotification('请先设置GitHub仓库地址', 'error');
+            }
+        }
         
-        // 从本地加载数据
-        document.getElementById('loadDataBtn').addEventListener('click', function() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'application/json';
-            
-            input.onchange = function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        if (Array.isArray(data)) {
-                            reminders = data;
-                            saveToLocalStorage();
-                            updateReminderList();
-                            updateReminderData();
-                            showNotification('提醒数据已加载', 'success');
-                        } else {
-                            showNotification('文件格式错误', 'error');
-                        }
-                    } catch (error) {
-                        showNotification('读取文件失败: ' + error.message, 'error');
-                    }
-                };
-                reader.readAsText(file);
-            };
-            
-            input.click();
-        });
+        // 查看Actions
+        function viewActions() {
+            if (githubRepo) {
+                const actionsUrl = githubRepo.replace('api.github.com/repos', 'github.com') + '/actions';
+                window.open(actionsUrl, '_blank');
+            } else {
+                showNotification('请先设置GitHub仓库地址', 'error');
+            }
+        }
         
-        // 生成GitHub Actions配置文件
-        function generateGitHubActionsConfig() {
-            const remindersJSON = JSON.stringify(reminders);
-            const escapedReminders = remindersJSON.replace(/"/g, '\\"');
-            
-            return `name: Send Telegram Reminder
-
-on:
-  schedule:
-    # 每天11:00运行（UTC时间）
-    - cron: '0 3 * * *'  # 北京时间11:00 = UTC时间3:00
-  workflow_dispatch:  # 允许手动触发
-
-jobs:
-  send-reminder:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      
-      - name: Install dependencies
-        run: pip install requests
-      
-      - name: Create reminder script
-        run: |
-          cat > send_reminder.py << 'EOF'
-import os
-import json
-import requests
-from datetime import datetime, timedelta
-
-# 从GitHub Secrets获取配置
-BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
-
-# 提醒数据（从页面配置获取）
-REMINDERS = ${remindersJSON}
-
-def send_telegram_message(message):
-    """发送消息到Telegram"""
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        'chat_id': CHAT_ID,
-        'text': message,
-        'parse_mode': 'HTML'
-    }
-    
-    try:
-        response = requests.post(url, json=payload)
-        return response.json()
-    except Exception as e:
-        print(f"发送失败: {e}")
-        return None
-
-def check_reminders():
-    """检查需要发送的提醒"""
-    today = datetime.now().strftime('%Y-%m-%d')
-    messages = []
-    
-    for reminder in REMINDERS:
-        last_updated = datetime.strptime(reminder['lastUpdated'], '%Y-%m-%d')
-        next_reminder = last_updated + timedelta(days=reminder['days'])
+        // 打开Telegram
+        function openTelegram() {
+            window.open('https://web.telegram.org', '_blank');
+        }
         
-        if next_reminder.strftime('%Y-%m-%d') <= today:
-            message = f"🔔 提醒：今日需要更新 {reminder['name']}\\n上次更新时间：{reminder['lastUpdated']}\\n提醒间隔：每{reminder['days']}天"
-            messages.append(message)
-    
-    return messages
-
-def main():
-    if not BOT_TOKEN or not CHAT_ID:
-        print("错误：请设置TELEGRAM_BOT_TOKEN和TELEGRAM_CHAT_ID")
-        return
-    
-    print(f"开始检查提醒... (共{len(REMINDERS)}个提醒项目)")
-    
-    messages = check_reminders()
-    
-    if not messages:
-        print("今天没有需要发送的提醒")
-        # 发送一条状态消息
-        status_msg = f"✅ 今日提醒检查完成\\n检查时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n总提醒项目：{len(REMINDERS)}个\\n今日需要提醒：0个"
-        send_telegram_message(status_msg)
-        return
-    
-    print(f"发现 {len(messages)} 个需要发送的提醒")
-    
-    # 发送每个提醒
-    for i, message in enumerate(messages, 1):
-        print(f"发送提醒 {i}/{len(messages)}: {message[:50]}...")
-        result = send_telegram_message(message)
-        if result and result.get('ok'):
-            print("✓ 发送成功")
-        else:
-            print("✗ 发送失败")
-    
-    # 发送总结
-    summary = f"📋 今日提醒发送完成\\n发送时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n总提醒项目：{len(REMINDERS)}个\\n今日已发送：{len(messages)}个提醒"
-    send_telegram_message(summary)
-
-if __name__ == '__main__':
-    main()
-EOF
-      
-      - name: Run reminder script
-        env:
-          TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: \${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python send_reminder.py
-      
-      - name: Save run log
-        if: always()
-        run: |
-          echo "Run completed at \$(date)" >> reminder.log
-          echo "Total reminders: ${reminders.length}" >> reminder.log
-        `;
+        // 更新状态显示
+        function updateStatus(status) {
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const nextRunInfo = document.getElementById('nextRunInfo');
+            
+            if (status === 'connected') {
+                statusIcon.className = 'status-indicator status-online';
+                statusText.textContent = 'GitHub连接正常';
+                nextRunInfo.textContent = '下次自动运行：每天11:00（北京时间）';
+            } else {
+                statusIcon.className = 'status-indicator status-offline';
+                statusText.textContent = '未连接GitHub';
+                nextRunInfo.textContent = '';
+            }
         }
         
         // 保存到本地存储
@@ -709,28 +796,50 @@ EOF
             }
         }
         
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('已复制到剪贴板！', 'success');
+            });
+        }
+        
         // 显示通知
         function showNotification(message, type) {
             const notificationArea = document.getElementById('notificationArea');
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-                <div>${message}</div>
-            `;
+            
+            let icon = 'fas fa-info-circle';
+            if (type === 'success') icon = 'fas fa-check-circle';
+            if (type === 'error') icon = 'fas fa-exclamation-circle';
+            if (type === 'info') icon = 'fas fa-info-circle';
+            
+            // 处理HTML内容
+            if (typeof message === 'string' && message.includes('<')) {
+                notification.innerHTML = `
+                    <i class="${icon}"></i>
+                    <div>${message}</div>
+                `;
+            } else {
+                notification.innerHTML = `
+                    <i class="${icon}"></i>
+                    <div>${message}</div>
+                `;
+            }
             
             notificationArea.appendChild(notification);
             
-            // 3秒后移除
+            // 5秒后移除
             setTimeout(() => {
                 if (notification.parentNode === notificationArea) {
                     notificationArea.removeChild(notification);
                 }
-            }, 3000);
+            }, 10000);
         }
         
         // 导出函数到全局
         window.deleteReminder = deleteReminder;
+        window.copyToClipboard = copyToClipboard;
     </script>
 </body>
 </html>
