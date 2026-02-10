@@ -44,9 +44,9 @@ def save_reminders(reminders):
 
 def send_telegram_message(bot_token, chat_id, message):
     """发送消息到Telegram"""
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    url = f"https://api.telegram.org/bot{8318280600:AAGEZPDxhv3eviQ1LabJbgfhRqrUKPr_L6c}/sendMessage"
     payload = {
-        'chat_id': chat_id,
+        'chat_id':-1003343885203,
         'text': message,
         'parse_mode': 'HTML'
     }
