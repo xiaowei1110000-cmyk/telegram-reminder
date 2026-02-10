@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub定时提醒系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #0088cc, #005a8c);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 25px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            color: #0088cc;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #0088cc;
+            outline: none;
+        }
+        
+        .btn {
+            padding: 14px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn-primary {
+            background: #0088cc;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #005a8c;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        
+        .reminder-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #0088cc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .reminder-info h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .reminder-details {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        
+        .notification {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .notification.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        
+        .notification.error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .github-config {
+            background: #24292e;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .github-config h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .code-block {
+            background: #1b1f23;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+            color: #c9d1d9;
+        }
+        
+        .step {
+            margin-bottom: 25px;
+            padding-left: 40px;
+            position: relative;
+        }
+        
+        .step-number {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 30px;
+            height: 30px;
+            background: #0088cc;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fab fa-github"></i> GitHub定时提醒系统</h1>
+            <p>无需服务器！使用GitHub Actions每天自动发送Telegram提醒</p>
+        </header>
+        
+        <div class="content">
+            <div id="notificationArea"></div>
+            
+            <div class="section">
+                <h2><i class="fas fa-plus-circle"></i> 添加提醒类型</h2>
+                
+                <div class="input-group">
+                    <label for="reminderName">提醒类型名称</label>
+                    <input type="text" id="reminderName" placeholder="例如：短信域名池、WEB大厅、后端加速、APP更新">
+                </div>
+                
+                <div class="input-group">
+                    <label for="lastUpdated">上次更新日期</label>
+                    <input type="date" id="lastUpdated">
+                </div>
+                
+                <div class="input-group">
+                    <label for="reminderDays">提醒间隔天数</label>
+                    <input type="number" id="reminderDays" value="3" min="1" max="365">
+                    <small style="color:#666;">每几天提醒一次（默认3天）</small>
+                </div>
+                
+                <button id="addReminderBtn" class="btn btn-success">
+                    <i class="fas fa-plus"></i> 添加到提醒列表
+                </button>
+            </div>
+            
+            <div class="section">
+                <h2><i class="fas fa-list"></i> 提醒列表</h2>
+                <div id="reminderList">
+                    <div class="reminder-item" style="text-align:center; color:#666;">
+                        <i class="far fa-bell" style="font-size:24px; margin-bottom:10px; display:block;"></i>
+                        <p>暂无提醒项目，请添加您的第一个提醒</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button id="generateConfigBtn" class="btn btn-primary">
+                        <i class="fas fa-code"></i> 生成GitHub Actions配置
+                    </button>
+                </div>
+            </div>
+            
+            <div class="github-config">
+                <h3><i class="fab fa-github"></i> GitHub配置步骤</h3>
+                
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h4>创建Telegram Bot</h4>
+                    <p>在Telegram中搜索 @BotFather，创建新Bot并获取Token</p>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h4>添加GitHub Secrets</h4>
+                    <p>在GitHub仓库 Settings → Secrets and variables → Actions 中添加：</p>
+                    <div class="code-block">
+TELEGRAM_BOT_TOKEN: "你的Bot Token"
+TELEGRAM_CHAT_ID: "你的群组Chat ID"
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h4>下载配置文件</h4>
+                    <p id="configContent" class="code-block">
+# 配置文件将在这里生成
+# 1. 点击上方"生成GitHub Actions配置"按钮
+# 2. 复制生成的YAML代码
+# 3. 保存为 .github/workflows/reminder.yml
+                    </p>
+                    <button id="copyConfigBtn" class="btn btn-warning" style="width: auto;">
+                        <i class="fas fa-copy"></i> 复制配置代码
+                    </button>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h4>立即测试</h4>
+                    <p>手动触发一次Action测试配置：</p>
+                    <div class="code-block">
+# 在仓库的 Actions 标签页
+# 1. 选择 "Send Telegram Reminder"
+# 2. 点击 "Run workflow"
+# 3. 选择分支并运行
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2><i class="fas fa-history"></i> 提醒历史记录</h2>
+                <textarea id="reminderData" rows="10" readonly placeholder="提醒数据将在这里显示..."></textarea>
+                <button id="saveDataBtn" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 保存提醒数据到本地
+                </button>
+                <button id="loadDataBtn" class="btn btn-warning" style="margin-top: 10px;">
+                    <i class="fas fa-upload"></i> 从本地加载提醒数据
+                </button>
+            </div>
+        </div>
+        
+        <footer>
+            <p>基于GitHub Actions的定时提醒系统 | 无需服务器 | 完全免费</p>
+            <p>GitHub Actions会在每天11:00（UTC时间）自动运行，发送提醒到Telegram</p>
+        </footer>
+    </div>
+
+    <script>
+        // 存储提醒数据
+        let reminders = [];
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认日期为今天
+            document.getElementById('lastUpdated').valueAsDate = new Date();
+            
+            // 从本地存储加载数据
+            loadFromLocalStorage();
+            
+            // 更新提醒列表显示
+            updateReminderList();
+            
+            // 更新提醒数据预览
+            updateReminderData();
+        });
+        
+        // 添加提醒
+        document.getElementById('addReminderBtn').addEventListener('click', function() {
+            const name = document.getElementById('reminderName').value.trim();
+            const lastUpdated = document.getElementById('lastUpdated').value;
+            const days = parseInt(document.getElementById('reminderDays').value);
+            
+            if (!name) {
+                showNotification('请输入提醒类型名称', 'error');
+                return;
+            }
+            
+            if (!lastUpdated) {
+                showNotification('请选择上次更新日期', 'error');
+                return;
+            }
+            
+            if (!days || days < 1) {
+                showNotification('提醒间隔天数必须大于0', 'error');
+                return;
+            }
+            
+            // 创建提醒对象
+            const reminder = {
+                id: Date.now(),
+                name: name,
+                lastUpdated: lastUpdated,
+                days: days,
+                createdAt: new Date().toISOString()
+            };
+            
+            // 添加到列表
+            reminders.push(reminder);
+            
+            // 保存到本地存储
+            saveToLocalStorage();
+            
+            // 更新显示
+            updateReminderList();
+            updateReminderData();
+            
+            // 清空表单
+            document.getElementById('reminderName').value = '';
+            document.getElementById('reminderDays').value = '3';
+            document.getElementById('lastUpdated').valueAsDate = new Date();
+            
+            showNotification(`"${name}" 已添加到提醒列表`, 'success');
+        });
+        
+        // 删除提醒
+        function deleteReminder(id) {
+            if (confirm('确定要删除这个提醒吗？')) {
+                reminders = reminders.filter(r => r.id !== id);
+                saveToLocalStorage();
+                updateReminderList();
+                updateReminderData();
+                showNotification('提醒已删除', 'success');
+            }
+        }
+        
+        // 更新提醒列表显示
+        function updateReminderList() {
+            const reminderList = document.getElementById('reminderList');
+            
+            if (reminders.length === 0) {
+                reminderList.innerHTML = `
+                    <div class="reminder-item" style="text-align:center; color:#666;">
+                        <i class="far fa-bell" style="font-size:24px; margin-bottom:10px; display:block;"></i>
+                        <p>暂无提醒项目，请添加您的第一个提醒</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            reminders.forEach(reminder => {
+                // 计算下次提醒日期
+                const lastDate = new Date(reminder.lastUpdated);
+                const nextDate = new Date(lastDate);
+                nextDate.setDate(nextDate.getDate() + reminder.days);
+                const nextStr = nextDate.toLocaleDateString('zh-CN');
+                
+                // 计算剩余天数
+                const today = new Date();
+                const diffTime = nextDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let status = '';
+                if (diffDays <= 0) {
+                    status = '<span style="color:#dc3545; font-weight:bold;">今日需要提醒</span>';
+                } else if (diffDays === 1) {
+                    status = '<span style="color:#ffc107; font-weight:bold;">明天提醒</span>';
+                } else {
+                    status = `<span>${diffDays}天后提醒</span>`;
+                }
+                
+                html += `
+                    <div class="reminder-item">
+                        <div class="reminder-info">
+                            <h4>${reminder.name}</h4>
+                            <div class="reminder-details">
+                                上次更新: ${reminder.lastUpdated} | 间隔: ${reminder.days}天 | 下次提醒: ${nextStr} (${status})
+                            </div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteReminder(${reminder.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            
+            reminderList.innerHTML = html;
+        }
+        
+        // 更新提醒数据预览
+        function updateReminderData() {
+            const reminderData = document.getElementById('reminderData');
+            reminderData.value = JSON.stringify(reminders, null, 2);
+        }
+        
+        // 生成GitHub Actions配置
+        document.getElementById('generateConfigBtn').addEventListener('click', function() {
+            if (reminders.length === 0) {
+                showNotification('请先添加至少一个提醒项目', 'error');
+                return;
+            }
+            
+            // 生成配置
+            const config = generateGitHubActionsConfig();
+            document.getElementById('configContent').textContent = config;
+            
+            showNotification('GitHub Actions配置已生成，请复制并保存', 'success');
+        });
+        
+        // 复制配置
+        document.getElementById('copyConfigBtn').addEventListener('click', function() {
+            const configText = document.getElementById('configContent').textContent;
+            navigator.clipboard.writeText(configText).then(() => {
+                showNotification('配置代码已复制到剪贴板', 'success');
+            });
+        });
+        
+        // 保存数据到本地
+        document.getElementById('saveDataBtn').addEventListener('click', function() {
+            const dataStr = JSON.stringify(reminders, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'telegram-reminders.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('提醒数据已保存到本地文件', 'success');
+        });
+        
+        // 从本地加载数据
+        document.getElementById('loadDataBtn').addEventListener('click', function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (Array.isArray(data)) {
+                            reminders = data;
+                            saveToLocalStorage();
+                            updateReminderList();
+                            updateReminderData();
+                            showNotification('提醒数据已加载', 'success');
+                        } else {
+                            showNotification('文件格式错误', 'error');
+                        }
+                    } catch (error) {
+                        showNotification('读取文件失败: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        });
+        
+        // 生成GitHub Actions配置文件
+        function generateGitHubActionsConfig() {
+            const remindersJSON = JSON.stringify(reminders);
+            const escapedReminders = remindersJSON.replace(/"/g, '\\"');
+            
+            return `name: Send Telegram Reminder
+
+on:
+  schedule:
+    # 每天11:00运行（UTC时间）
+    - cron: '0 3 * * *'  # 北京时间11:00 = UTC时间3:00
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  send-reminder:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install dependencies
+        run: pip install requests
+      
+      - name: Create reminder script
+        run: |
+          cat > send_reminder.py << 'EOF'
+import os
+import json
+import requests
+from datetime import datetime, timedelta
+
+# 从GitHub Secrets获取配置
+BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+
+# 提醒数据（从页面配置获取）
+REMINDERS = ${remindersJSON}
+
+def send_telegram_message(message):
+    """发送消息到Telegram"""
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': CHAT_ID,
+        'text': message,
+        'parse_mode': 'HTML'
+    }
+    
+    try:
+        response = requests.post(url, json=payload)
+        return response.json()
+    except Exception as e:
+        print(f"发送失败: {e}")
+        return None
+
+def check_reminders():
+    """检查需要发送的提醒"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    messages = []
+    
+    for reminder in REMINDERS:
+        last_updated = datetime.strptime(reminder['lastUpdated'], '%Y-%m-%d')
+        next_reminder = last_updated + timedelta(days=reminder['days'])
+        
+        if next_reminder.strftime('%Y-%m-%d') <= today:
+            message = f"🔔 提醒：今日需要更新 {reminder['name']}\\n上次更新时间：{reminder['lastUpdated']}\\n提醒间隔：每{reminder['days']}天"
+            messages.append(message)
+    
+    return messages
+
+def main():
+    if not BOT_TOKEN or not CHAT_ID:
+        print("错误：请设置TELEGRAM_BOT_TOKEN和TELEGRAM_CHAT_ID")
+        return
+    
+    print(f"开始检查提醒... (共{len(REMINDERS)}个提醒项目)")
+    
+    messages = check_reminders()
+    
+    if not messages:
+        print("今天没有需要发送的提醒")
+        # 发送一条状态消息
+        status_msg = f"✅ 今日提醒检查完成\\n检查时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n总提醒项目：{len(REMINDERS)}个\\n今日需要提醒：0个"
+        send_telegram_message(status_msg)
+        return
+    
+    print(f"发现 {len(messages)} 个需要发送的提醒")
+    
+    # 发送每个提醒
+    for i, message in enumerate(messages, 1):
+        print(f"发送提醒 {i}/{len(messages)}: {message[:50]}...")
+        result = send_telegram_message(message)
+        if result and result.get('ok'):
+            print("✓ 发送成功")
+        else:
+            print("✗ 发送失败")
+    
+    # 发送总结
+    summary = f"📋 今日提醒发送完成\\n发送时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n总提醒项目：{len(REMINDERS)}个\\n今日已发送：{len(messages)}个提醒"
+    send_telegram_message(summary)
+
+if __name__ == '__main__':
+    main()
+EOF
+      
+      - name: Run reminder script
+        env:
+          TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: \${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python send_reminder.py
+      
+      - name: Save run log
+        if: always()
+        run: |
+          echo "Run completed at \$(date)" >> reminder.log
+          echo "Total reminders: ${reminders.length}" >> reminder.log
+        `;
+        }
+        
+        // 保存到本地存储
+        function saveToLocalStorage() {
+            localStorage.setItem('telegramReminders', JSON.stringify(reminders));
+        }
+        
+        // 从本地存储加载
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('telegramReminders');
+            if (saved) {
+                try {
+                    reminders = JSON.parse(saved);
+                } catch (e) {
+                    reminders = [];
+                }
+            }
+        }
+        
+        // 显示通知
+        function showNotification(message, type) {
+            const notificationArea = document.getElementById('notificationArea');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <div>${message}</div>
+            `;
+            
+            notificationArea.appendChild(notification);
+            
+            // 3秒后移除
+            setTimeout(() => {
+                if (notification.parentNode === notificationArea) {
+                    notificationArea.removeChild(notification);
+                }
+            }, 3000);
+        }
+        
+        // 导出函数到全局
+        window.deleteReminder = deleteReminder;
+    </script>
+</body>
+</html>
