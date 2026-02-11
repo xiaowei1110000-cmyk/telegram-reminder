@@ -542,6 +542,30 @@
         .progress-fill.danger {
             background: var(--danger);
         }
+        
+        /* Sync Status */
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .sync-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--secondary);
+        }
+        
+        .sync-indicator.syncing {
+            animation: pulse 1s infinite;
+        }
+        
+        .sync-indicator.error {
+            background: var(--danger);
+        }
     </style>
 </head>
 <body>
@@ -650,6 +674,14 @@
                 <button class="btn btn-outline" onclick="clearToken()">
                     <i class="fas fa-trash"></i> 清除Token
                 </button>
+                <button class="btn btn-warning" onclick="forceRefreshGitHubData()">
+                    <i class="fas fa-sync-alt"></i> 强制刷新
+                </button>
+            </div>
+            
+            <div class="sync-status">
+                <div class="sync-indicator" id="syncIndicator"></div>
+                <span id="syncStatus">同步状态: 未连接</span>
             </div>
         </div>
         
@@ -757,6 +789,9 @@
                 <button class="btn btn-outline" onclick="downloadReminders()">
                     <i class="fas fa-download"></i> 下载备份
                 </button>
+                <button class="btn btn-outline" onclick="loadFromGitHub()">
+                    <i class="fas fa-download"></i> 从GitHub加载
+                </button>
                 <button class="btn btn-danger" onclick="clearAll()">
                     <i class="fas fa-trash"></i> 清空所有
                 </button>
@@ -832,7 +867,8 @@
             autoSave: true,
             githubToken: '',
             username: 'xiaowei1110000-cmyk',
-            repoName: 'telegram-reminder'
+            repoName: 'telegram-reminder',
+            lastSyncSHA: '' // 保存上次同步的SHA值
         };
         let gitHubAutoSave = null;
         
@@ -872,7 +908,52 @@
             
             // 初始更新预览
             updatePreview();
+            
+            // 初始化同步状态
+            updateSyncStatus();
         });
+        
+        // 更新同步状态
+        function updateSyncStatus(status = '', isSyncing = false) {
+            const indicator = document.getElementById('syncIndicator');
+            const statusText = document.getElementById('syncStatus');
+            
+            if (isSyncing) {
+                indicator.className = 'sync-indicator syncing';
+                statusText.textContent = '同步状态: 同步中...';
+                statusText.style.color = 'var(--warning)';
+            } else if (status === 'success') {
+                indicator.className = 'sync-indicator';
+                statusText.textContent = '同步状态: 已同步';
+                statusText.style.color = 'var(--secondary)';
+            } else if (status === 'error') {
+                indicator.className = 'sync-indicator error';
+                statusText.textContent = '同步状态: 同步失败';
+                statusText.style.color = 'var(--danger)';
+            } else {
+                indicator.className = 'sync-indicator';
+                statusText.textContent = '同步状态: 未连接';
+                statusText.style.color = 'var(--dark-text-secondary)';
+            }
+        }
+        
+        // 强制刷新GitHub数据
+        async function forceRefreshGitHubData() {
+            if (!config.githubToken) {
+                showNotification('请先配置GitHub Token', 'error');
+                return;
+            }
+            
+            showNotification('正在强制刷新GitHub数据...', 'info');
+            updateSyncStatus('', true);
+            
+            // 清除缓存SHA
+            config.lastSyncSHA = '';
+            saveConfig();
+            
+            // 尝试从GitHub加载数据
+            await loadFromGitHub();
+        }
         
         // 更新下次提醒预览
         function updatePreview() {
@@ -973,8 +1054,10 @@
                 gitHubAutoSave.testConnection().then(result => {
                     if (result.success) {
                         console.log('✅ GitHub自动保存连接正常');
+                        updateSyncStatus('success');
                     } else {
                         console.warn('⚠️ GitHub自动保存连接失败:', result.error);
+                        updateSyncStatus('error');
                     }
                 });
             }
@@ -1014,6 +1097,7 @@
             }
             
             showNotification('正在测试GitHub连接...', 'info');
+            updateSyncStatus('', true);
             
             const tempGitHub = new GitHubAutoSave(
                 config.username,
@@ -1027,8 +1111,18 @@
                 showNotification(`✅ 连接成功！仓库: ${result.repo}<br>权限: ${JSON.stringify(result.permissions)}`, 'success');
                 // 初始化正式实例
                 gitHubAutoSave = tempGitHub;
+                updateSyncStatus('success');
+                
+                // 尝试获取当前文件信息
+                const fileInfo = await gitHubAutoSave.getFileInfo();
+                if (fileInfo.success) {
+                    config.lastSyncSHA = fileInfo.sha;
+                    saveConfig();
+                    showNotification('✅ 已获取最新文件SHA值', 'success');
+                }
             } else {
                 showNotification(`❌ 连接失败: ${result.error}`, 'error');
+                updateSyncStatus('error');
             }
         }
         
@@ -1037,8 +1131,10 @@
             if (confirm('确定要清除Token吗？清除后自动保存将失效。')) {
                 config.githubToken = '';
                 document.getElementById('githubToken').value = '';
+                config.lastSyncSHA = '';
                 saveConfig();
                 gitHubAutoSave = null;
+                updateSyncStatus();
                 showNotification('✅ Token已清除', 'success');
             }
         }
@@ -1067,6 +1163,57 @@
             }
         }
         
+        // 从GitHub加载数据
+        async function loadFromGitHub() {
+            if (!gitHubAutoSave) {
+                showNotification('请先配置GitHub Token并测试连接', 'error');
+                return;
+            }
+            
+            showNotification('正在从GitHub加载数据...', 'info');
+            updateSyncStatus('', true);
+            
+            try {
+                const result = await gitHubAutoSave.loadFromGitHub();
+                
+                if (result.success) {
+                    // 合并数据：优先使用GitHub的数据
+                    if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+                        // 使用GitHub的数据
+                        reminders = result.data;
+                        showNotification(`✅ 已从GitHub加载 ${reminders.length} 个提醒`, 'success');
+                    } else {
+                        // GitHub文件存在但为空
+                        showNotification('ℹ️ GitHub上的文件为空，保留本地数据', 'info');
+                    }
+                    
+                    // 更新本地存储
+                    saveReminders();
+                    updateReminderList();
+                    
+                    // 保存最新的SHA值
+                    config.lastSyncSHA = result.sha || '';
+                    saveConfig();
+                    
+                    updateSyncStatus('success');
+                    document.getElementById('lastSaveTime').textContent = '刚刚同步';
+                    
+                } else {
+                    if (result.error.includes('404')) {
+                        // 文件不存在，这是正常情况
+                        showNotification('ℹ️ GitHub上还没有数据文件，将使用本地数据', 'info');
+                        updateSyncStatus('success');
+                    } else {
+                        showNotification(`❌ 加载失败: ${result.error}`, 'error');
+                        updateSyncStatus('error');
+                    }
+                }
+            } catch (error) {
+                showNotification(`❌ 加载异常: ${error.message}`, 'error');
+                updateSyncStatus('error');
+            }
+        }
+        
         // 自动保存到GitHub
         async function autoSaveToGitHub() {
             if (!config.autoSave || !gitHubAutoSave) {
@@ -1075,19 +1222,31 @@
             
             try {
                 const jsonData = JSON.stringify(reminders, null, 2);
-                const result = await gitHubAutoSave.saveToGitHub(jsonData, '更新提醒数据 [自动]');
+                const result = await gitHubAutoSave.saveToGitHub(jsonData, '更新提醒数据 [自动]', config.lastSyncSHA);
                 
                 if (result.success) {
                     console.log('✅ 自动保存成功:', result.message);
-                    // 更新最后保存时间
+                    // 更新最后保存时间和SHA值
                     document.getElementById('lastSaveTime').textContent = '刚刚保存';
+                    config.lastSyncSHA = result.sha || '';
+                    saveConfig();
+                    updateSyncStatus('success');
                     return result;
                 } else {
                     console.error('❌ 自动保存失败:', result.error);
+                    
+                    // 如果是SHA不匹配错误，尝试强制刷新
+                    if (result.error.includes('does not match')) {
+                        showNotification('⚠️ 数据冲突，正在尝试重新同步...', 'warning');
+                        await forceRefreshGitHubData();
+                    }
+                    
+                    updateSyncStatus('error');
                     return result;
                 }
             } catch (error) {
                 console.error('❌ 自动保存异常:', error);
+                updateSyncStatus('error');
                 return {
                     success: false,
                     error: error.message
@@ -1287,15 +1446,35 @@
             }
             
             showNotification('正在保存到GitHub...', 'info');
+            updateSyncStatus('', true);
             
             const jsonData = JSON.stringify(reminders, null, 2);
-            const result = await gitHubAutoSave.saveToGitHub(jsonData, '手动更新提醒数据');
+            const result = await gitHubAutoSave.saveToGitHub(jsonData, '手动更新提醒数据', config.lastSyncSHA);
             
             if (result.success) {
                 showNotification('✅ 已成功保存到GitHub', 'success');
                 document.getElementById('lastSaveTime').textContent = '刚刚保存';
+                config.lastSyncSHA = result.sha || '';
+                saveConfig();
+                updateSyncStatus('success');
             } else {
                 showNotification(`❌ 保存失败: ${result.error}`, 'error');
+                updateSyncStatus('error');
+                
+                // 如果是SHA不匹配错误，提供解决方案
+                if (result.error.includes('does not match')) {
+                    showNotification(
+                        `⚠️ 数据冲突！<br>
+                        可能的原因：<br>
+                        1. GitHub上的文件已被其他人修改<br>
+                        2. 在其他设备上修改了数据<br>
+                        <br>
+                        解决方案：<br>
+                        1. 点击"强制刷新"按钮重新同步<br>
+                        2. 或手动合并数据`,
+                        'warning'
+                    );
+                }
             }
         }
         
@@ -1633,6 +1812,8 @@
         window.viewDetails = viewDetails;
         window.markAsComplete = markAsComplete;
         window.quickComplete = quickComplete;
+        window.loadFromGitHub = loadFromGitHub;
+        window.forceRefreshGitHubData = forceRefreshGitHubData;
         
         // 初始化GitHub自动保存
         initGitHubAutoSave();
@@ -1640,7 +1821,7 @@
     
     <!-- 引入自动保存模块 -->
     <script>
-        // GitHub自动保存类
+        // GitHub自动保存类 - 修复SHA问题的版本
         class GitHubAutoSave {
             constructor(username, repoName, token) {
                 this.username = username;
@@ -1679,27 +1860,112 @@
                 }
             }
             
-            async saveToGitHub(content, commitMessage) {
+            // 获取文件信息（SHA值）
+            async getFileInfo() {
                 try {
-                    // 获取文件SHA（如果存在）
-                    let sha = '';
-                    try {
-                        const getResponse = await fetch(
-                            `${this.apiBase}/repos/${this.username}/${this.repoName}/contents/reminders.json`,
-                            {
-                                headers: {
-                                    'Authorization': `token ${this.token}`,
-                                    'Accept': 'application/vnd.github.v3+json'
-                                }
+                    const response = await fetch(
+                        `${this.apiBase}/repos/${this.username}/${this.repoName}/contents/reminders.json`,
+                        {
+                            headers: {
+                                'Authorization': `token ${this.token}`,
+                                'Accept': 'application/vnd.github.v3+json'
                             }
-                        );
-                        
-                        if (getResponse.ok) {
-                            const fileData = await getResponse.json();
-                            sha = fileData.sha;
                         }
-                    } catch (e) {
-                        // 文件不存在是正常情况
+                    );
+                    
+                    if (response.ok) {
+                        const fileData = await response.json();
+                        return {
+                            success: true,
+                            sha: fileData.sha,
+                            size: fileData.size,
+                            content: fileData.content ? atob(fileData.content.replace(/\n/g, '')) : ''
+                        };
+                    } else if (response.status === 404) {
+                        // 文件不存在
+                        return {
+                            success: true,
+                            sha: null,
+                            content: ''
+                        };
+                    } else {
+                        return {
+                            success: false,
+                            error: `HTTP ${response.status}: ${response.statusText}`
+                        };
+                    }
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+            
+            // 从GitHub加载数据
+            async loadFromGitHub() {
+                try {
+                    const fileInfo = await this.getFileInfo();
+                    
+                    if (!fileInfo.success) {
+                        return fileInfo;
+                    }
+                    
+                    if (fileInfo.content) {
+                        try {
+                            const data = JSON.parse(fileInfo.content);
+                            return {
+                                success: true,
+                                data: data,
+                                sha: fileInfo.sha,
+                                message: '数据加载成功'
+                            };
+                        } catch (e) {
+                            return {
+                                success: false,
+                                error: '文件内容格式错误'
+                            };
+                        }
+                    } else {
+                        // 文件存在但内容为空或文件不存在
+                        return {
+                            success: true,
+                            data: [],
+                            sha: fileInfo.sha,
+                            message: '文件为空'
+                        };
+                    }
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+            
+            // 保存到GitHub（带SHA处理）
+            async saveToGitHub(content, commitMessage, knownSHA = null) {
+                try {
+                    // 如果提供了SHA，直接使用
+                    let sha = knownSHA;
+                    
+                    // 如果没提供SHA，尝试获取最新的SHA
+                    if (!sha) {
+                        const fileInfo = await this.getFileInfo();
+                        if (fileInfo.success && fileInfo.sha) {
+                            sha = fileInfo.sha;
+                        }
+                    }
+                    
+                    // 构建请求数据
+                    const requestData = {
+                        message: commitMessage,
+                        content: btoa(unescape(encodeURIComponent(content)))
+                    };
+                    
+                    // 如果文件存在，添加SHA
+                    if (sha) {
+                        requestData.sha = sha;
                     }
                     
                     // 更新文件
@@ -1712,24 +1978,123 @@
                                 'Accept': 'application/vnd.github.v3+json',
                                 'Content-Type': 'application/json'
                             },
+                            body: JSON.stringify(requestData)
+                        }
+                    );
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        return {
+                            success: true,
+                            message: '保存成功',
+                            sha: result.content.sha,
+                            url: result.content.html_url
+                        };
+                    } else {
+                        const errorData = await response.json();
+                        
+                        // 详细错误信息
+                        let errorMessage = errorData.message || '保存失败';
+                        if (errorData.errors) {
+                            errorMessage += ` (${JSON.stringify(errorData.errors)})`;
+                        }
+                        
+                        return {
+                            success: false,
+                            error: errorMessage,
+                            httpStatus: response.status
+                        };
+                    }
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+            
+            // 创建新文件（第一次保存）
+            async createFile(content, commitMessage) {
+                try {
+                    const response = await fetch(
+                        `${this.apiBase}/repos/${this.username}/${this.repoName}/contents/reminders.json`,
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `token ${this.token}`,
+                                'Accept': 'application/vnd.github.v3+json',
+                                'Content-Type': 'application/json'
+                            },
                             body: JSON.stringify({
                                 message: commitMessage,
-                                content: btoa(unescape(encodeURIComponent(content))),
-                                sha: sha || undefined
+                                content: btoa(unescape(encodeURIComponent(content)))
                             })
                         }
                     );
                     
                     if (response.ok) {
+                        const result = await response.json();
                         return {
                             success: true,
-                            message: '保存成功'
+                            message: '文件创建成功',
+                            sha: result.content.sha
                         };
                     } else {
                         const errorData = await response.json();
                         return {
                             success: false,
-                            error: errorData.message || '保存失败'
+                            error: errorData.message || '创建失败'
+                        };
+                    }
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+            
+            // 强制保存（忽略SHA冲突）
+            async forceSaveToGitHub(content, commitMessage) {
+                try {
+                    // 先获取最新SHA
+                    const fileInfo = await this.getFileInfo();
+                    
+                    // 使用最新SHA
+                    const requestData = {
+                        message: commitMessage,
+                        content: btoa(unescape(encodeURIComponent(content)))
+                    };
+                    
+                    if (fileInfo.success && fileInfo.sha) {
+                        requestData.sha = fileInfo.sha;
+                    }
+                    
+                    const response = await fetch(
+                        `${this.apiBase}/repos/${this.username}/${this.repoName}/contents/reminders.json`,
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `token ${this.token}`,
+                                'Accept': 'application/vnd.github.v3+json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(requestData)
+                        }
+                    );
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        return {
+                            success: true,
+                            message: '强制保存成功',
+                            sha: result.content.sha
+                        };
+                    } else {
+                        const errorData = await response.json();
+                        return {
+                            success: false,
+                            error: errorData.message || '强制保存失败'
                         };
                     }
                 } catch (error) {
