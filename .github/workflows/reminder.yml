@@ -2,7 +2,7 @@ name: Send Telegram Reminder
 
 on:
   schedule:
-    # 每天北京时间11:00运行
+    # 每天北京时间11:00运行（UTC时间3:00）
     - cron: '0 3 * * *'
   workflow_dispatch:
     # 允许手动触发
@@ -29,13 +29,15 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: python reminder.py
+      run: |
+        python reminder.py
+        echo "运行完成"
         
-    - name: 上传运行日志
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: reminder-logs
-        path: |
-          reminder.log
-        retention-days: 7
+    - name: 提交更新
+      if: success()
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+        git add reminders.json
+        git diff --quiet && git diff --staged --quiet || git commit -m "更新提醒时间"
+        git push || echo "推送失败，可能是没有更改"
