@@ -6,6 +6,10 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
     # 允许手动触发
+  push:
+    paths:
+      - 'reminders.json'
+    # 当reminders.json被更新时也运行
 
 jobs:
   send-reminder:
@@ -29,9 +33,7 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: |
-        python reminder.py
-        echo "运行完成"
+      run: python reminder.py
         
     - name: 提交更新
       if: success()
@@ -39,5 +41,5 @@ jobs:
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
         git add reminders.json
-        git diff --quiet && git diff --staged --quiet || git commit -m "更新提醒时间"
+        git diff --quiet && git diff --staged --quiet || git commit -m "更新提醒时间 [自动]"
         git push || echo "推送失败，可能是没有更改"
