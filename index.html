@@ -2258,7 +2258,7 @@
                             success: true,
                             sha: fileData.sha,
                             size: fileData.size,
-                            content: fileData.content ? atob(fileData.content.replace(/\n/g, '')) : ''
+                            content: fileData.content ? this.base64ToUtf8(fileData.content) : ''
                         };
                     } else if (response.status === 404) {
                         return {
@@ -2280,6 +2280,69 @@
                 }
             }
             
+            // 修复Base64转UTF-8的函数（正确处理中文）
+            base64ToUtf8(base64) {
+                try {
+                    // 移除Base64中的换行符和空格
+                    const cleanBase64 = base64.replace(/\s/g, '');
+                    
+                    // 方法1: 使用TextDecoder（现代浏览器）
+                    if (typeof TextDecoder !== 'undefined') {
+                        const binaryString = atob(cleanBase64);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        return new TextDecoder('utf-8').decode(bytes);
+                    }
+                    
+                    // 方法2: 传统方法（兼容性更好）
+                    const binaryString = atob(cleanBase64);
+                    const utf8Text = decodeURIComponent(escape(binaryString));
+                    return utf8Text;
+                    
+                } catch (error) {
+                    console.error('Base64解码失败:', error);
+                    try {
+                        // 备用方案：直接atob
+                        return atob(base64.replace(/\s/g, ''));
+                    } catch (e2) {
+                        console.error('备用解码方案也失败:', e2);
+                        return '';
+                    }
+                }
+            }
+            
+            // 修复UTF-8转Base64的函数（正确处理中文）
+            utf8ToBase64(str) {
+                try {
+                    // 方法1: 使用TextEncoder（现代浏览器）
+                    if (typeof TextEncoder !== 'undefined') {
+                        const encoder = new TextEncoder();
+                        const bytes = encoder.encode(str);
+                        let binary = '';
+                        const len = bytes.byteLength;
+                        for (let i = 0; i < len; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        return btoa(binary);
+                    }
+                    
+                    // 方法2: 传统方法（兼容性更好）
+                    return btoa(unescape(encodeURIComponent(str)));
+                    
+                } catch (error) {
+                    console.error('UTF-8编码失败:', error);
+                    try {
+                        // 备用方案：直接btoa
+                        return btoa(str);
+                    } catch (e2) {
+                        console.error('备用编码方案也失败:', e2);
+                        return '';
+                    }
+                }
+            }
+            
             async loadFromGitHub() {
                 try {
                     const fileInfo = await this.getFileInfo();
@@ -2290,6 +2353,7 @@
                     
                     if (fileInfo.content) {
                         try {
+                            // 直接解析JSON，content已经是UTF-8字符串
                             const data = JSON.parse(fileInfo.content);
                             return {
                                 success: true,
@@ -2298,9 +2362,10 @@
                                 message: '数据加载成功'
                             };
                         } catch (e) {
+                            console.error('JSON解析失败:', e, '内容:', fileInfo.content.substring(0, 100));
                             return {
                                 success: false,
-                                error: '文件内容格式错误'
+                                error: '文件内容格式错误或编码问题: ' + e.message
                             };
                         }
                     } else {
@@ -2319,7 +2384,6 @@
                 }
             }
             
-            // 修复中文乱码问题：使用正确的Base64编码
             async saveToGitHub(content, commitMessage, knownSHA = null) {
                 try {
                     let sha = knownSHA;
@@ -2331,26 +2395,9 @@
                         }
                     }
                     
-                    // 修复中文乱码：使用正确的UTF-8到Base64编码
-                    const utf8ToBase64 = (str) => {
-                        try {
-                            // 方法1: 使用TextEncoder
-                            const encoder = new TextEncoder();
-                            const bytes = encoder.encode(str);
-                            let binary = '';
-                            for (let i = 0; i < bytes.length; i++) {
-                                binary += String.fromCharCode(bytes[i]);
-                            }
-                            return btoa(binary);
-                        } catch (e) {
-                            // 方法2: 备用方案
-                            return btoa(unescape(encodeURIComponent(str)));
-                        }
-                    };
-                    
                     const requestData = {
                         message: commitMessage,
-                        content: utf8ToBase64(content),
+                        content: this.utf8ToBase64(content),
                         sha: sha
                     };
                     
@@ -2396,7 +2443,6 @@
                 }
             }
             
-            // 模拟GitHub Actions发送提醒
             async simulateGitHubActions() {
                 try {
                     const today = getTodayDateString();
