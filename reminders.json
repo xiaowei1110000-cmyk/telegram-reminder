@@ -2,29 +2,15 @@
   {
     "id": 1,
     "name": "短信域名池",
-    "lastUpdated": "2026-02-10",
+    "lastUpdated": "2024-01-01",
     "days": 3,
-    "createdAt": "2026-02-10T00:00:00"
+    "createdAt": "2024-01-01T00:00:00Z"
   },
   {
     "id": 2,
     "name": "WEB大厅",
-    "lastUpdated": "2026-02-10",
+    "lastUpdated": "2024-01-01",
     "days": 3,
-    "createdAt": "2026-02-10T00:00:00"
-  },
-  {
-    "id": 3,
-    "name": "后端加速",
-    "lastUpdated": "2026-02-10",
-    "days": 3,
-    "createdAt": "2026-02-10T00:00:00"
-  },
-  {
-    "id": 4,
-    "name": "APP更新",
-    "lastUpdated": "2026-02-10",
-    "days": 3,
-    "createdAt": "2026-02-10T00:00:00"
+    "createdAt": "2024-01-01T00:00:00Z"
   }
 ]
