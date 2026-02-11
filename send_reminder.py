@@ -9,6 +9,7 @@ import os
 import json
 import requests
 from datetime import datetime, timedelta
+import subprocess
 
 def log(message):
     """记录日志"""
@@ -44,9 +45,9 @@ def save_reminders(reminders):
 
 def send_telegram_message(bot_token, chat_id, message):
     """发送消息到Telegram"""
-    url = f"https://api.telegram.org/bot{8318280600:AAGEZPDxhv3eviQ1LabJbgfhRqrUKPr_L6c}/sendMessage"
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
-        'chat_id':-1003343885203,
+        'chat_id': chat_id,
         'text': message,
         'parse_mode': 'HTML'
     }
@@ -127,13 +128,39 @@ def check_reminders(reminders):
     log(f"检查完成，共发现 {need_remind_count} 个需要提醒的项目")
     return messages, updated_reminders
 
+def commit_and_push_changes():
+    """提交并推送更改到GitHub"""
+    try:
+        # 配置git用户
+        subprocess.run(['git', 'config', '--global', 'user.name', 'github-actions'], check=True)
+        subprocess.run(['git', 'config', '--global', 'user.email', 'github-actions@github.com'], check=True)
+        
+        # 添加文件
+        subprocess.run(['git', 'add', 'reminders.json'], check=True)
+        
+        # 提交更改
+        commit_message = f'更新提醒时间 {datetime.now().strftime("%Y-%m-%d")}'
+        subprocess.run(['git', 'commit', '-m', commit_message], check=True)
+        
+        # 推送到远程仓库
+        subprocess.run(['git', 'push'], check=True)
+        
+        log("✓ 提醒数据已提交到GitHub")
+        return True
+    except subprocess.CalledProcessError as e:
+        log(f"✗ git命令执行失败: {e}")
+        return False
+    except Exception as e:
+        log(f"✗ 提交更新失败: {e}")
+        return False
+
 def main():
     """主函数"""
     log("=== Telegram定时提醒系统开始运行 ===")
     
     # 从环境变量获取配置
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    bot_token = os.environ.get('8239139638:AAGbCCpa6Jei3bviOv7uNjMTRAdxJ_4VXG0')
+    chat_id = os.environ.get('-1003549797288')
     
     if not bot_token:
         log("✗ 错误：未设置 TELEGRAM_BOT_TOKEN 环境变量")
@@ -144,6 +171,9 @@ def main():
         log("✗ 错误：未设置 TELEGRAM_CHAT_ID 环境变量")
         log("请在 GitHub Repository Settings → Secrets and variables → Actions 中添加")
         return
+    
+    log(f"✓ Bot Token: {bot_token[:10]}...")
+    log(f"✓ Chat ID: {chat_id}")
     
     # 加载提醒数据
     reminders = load_reminders()
@@ -166,7 +196,7 @@ def main():
         log(f"准备发送 {len(messages)} 个提醒")
         
         # 合并所有提醒为一条消息
-        combined_message = "📢 今日更新提醒：\n\n"
+        combined_message = "📢 <b>今日更新提醒</b>\n\n"
         
         for i, msg in enumerate(messages, 1):
             combined_message += f"{i}. {msg}\n\n"
@@ -184,15 +214,7 @@ def main():
             save_reminders(updated_reminders)
             
             # 提交更新到GitHub
-            try:
-                os.system('git config --global user.name "github-actions"')
-                os.system('git config --global user.email "github-actions@github.com"')
-                os.system('git add reminders.json')
-                os.system('git commit -m "更新提醒时间 [skip ci]"')
-                os.system('git push')
-                log("✓ 提醒数据已提交到GitHub")
-            except Exception as e:
-                log(f"提交更新失败: {e}")
+            commit_and_push_changes()
         else:
             log("✗ 提醒发送失败，不更新数据文件")
     else:
@@ -200,10 +222,11 @@ def main():
         
         # 可以发送一条状态消息（可选）
         status_message = (
-            f"✅ 今日提醒检查完成\n"
+            f"✅ <b>今日提醒检查完成</b>\n"
             f"📅 检查日期：{datetime.now().strftime('%Y年%m月%d日')}\n"
             f"📊 总提醒项目：{len(reminders)}个\n"
-            f"🔔 今日需要提醒：0个"
+            f"🔔 今日需要提醒：0个\n\n"
+            f"⏰ 下次检查：明天11:00（北京时间）"
         )
         send_telegram_message(bot_token, chat_id, status_message)
     
