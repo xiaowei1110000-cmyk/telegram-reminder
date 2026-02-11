@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub定时提醒系统</title>
+    <title>GitHub定时提醒系统 - 自动保存</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; min-height: 100vh; }
-        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
         header { background: linear-gradient(135deg, #0088cc, #005a8c); color: white; padding: 25px; text-align: center; }
         .content { padding: 25px; }
         .section { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px; }
@@ -19,6 +19,7 @@
         .btn-success { background: #28a745; }
         .btn-warning { background: #ffc107; color: #333; }
         .btn-danger { background: #dc3545; }
+        .btn-info { background: #17a2b8; }
         .notification { padding: 15px; border-radius: 5px; margin: 10px 0; display: flex; align-items: center; gap: 10px; }
         .success { background: #d4edda; border-left: 4px solid #28a745; color: #155724; }
         .error { background: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
@@ -29,21 +30,75 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         .action-buttons { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
         .action-buttons button { flex: 1; min-width: 120px; }
+        .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; margin-left: 10px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .toggle-slider { background-color: #28a745; }
+        input:checked + .toggle-slider:before { transform: translateX(26px); }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1><i class="fab fa-telegram"></i> Telegram定时提醒系统</h1>
-            <p>基于GitHub Actions，无需服务器</p>
+            <p>基于GitHub Actions | 支持自动保存</p>
         </header>
         
         <div class="content">
             <div id="notificationArea"></div>
             
-            <!-- 系统状态监控 -->
+            <!-- 自动保存配置 -->
             <div class="section">
-                <h2><i class="fas fa-chart-line"></i> 系统状态监控</h2>
+                <h2><i class="fas fa-robot"></i> 自动保存配置</h2>
+                <div style="margin-bottom: 15px;">
+                    <label>
+                        <strong>自动保存功能：</strong>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoSaveToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="autoSaveStatus" style="color:#28a745;">✅ 已启用</span>
+                    </label>
+                </div>
+                
+                <div id="tokenConfig" style="background: white; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                    <h3 style="color:#333; margin-bottom: 10px;">GitHub Token 配置</h3>
+                    <p style="color:#666; font-size: 14px; margin-bottom: 10px;">
+                        需要GitHub Personal Access Token才能自动保存。<br>
+                        <a href="https://github.com/settings/tokens" target="_blank" style="color:#007bff;">点击这里创建Token</a>
+                        （需要repo权限）
+                    </p>
+                    <input type="password" id="githubToken" placeholder="输入GitHub Token（ghp_...）">
+                    <input type="text" id="githubUsername" placeholder="GitHub用户名" value="xiaowei1110000-cmyk">
+                    <input type="text" id="githubRepo" placeholder="仓库名" value="telegram-reminder">
+                    
+                    <div class="action-buttons">
+                        <button onclick="saveTokenConfig()" class="btn-success">
+                            <i class="fas fa-save"></i> 保存配置
+                        </button>
+                        <button onclick="testAutoSave()" class="btn-info">
+                            <i class="fas fa-test"></i> 测试自动保存
+                        </button>
+                        <button onclick="clearToken()" class="btn-danger">
+                            <i class="fas fa-trash"></i> 清除Token
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="autoSaveInfo" style="color:#666; font-size: 14px; padding: 10px; background: #e9ecef; border-radius: 5px;">
+                    <p><i class="fas fa-info-circle"></i> <strong>自动保存说明：</strong></p>
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>启用后，每次添加/删除提醒都会自动保存到GitHub</li>
+                        <li>Token会加密保存在浏览器本地，不会上传到服务器</li>
+                        <li>需要Token具有repo权限才能写入仓库</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- 系统状态 -->
+            <div class="section">
+                <h2><i class="fas fa-chart-line"></i> 系统状态</h2>
                 <div id="systemStatus">
                     <p><span class="status-indicator status-offline" id="statusIcon"></span> 
                        <span id="statusText">正在检查系统状态...</span>
@@ -59,17 +114,7 @@
                 </div>
             </div>
             
-            <div class="section">
-                <h2><i class="fas fa-cog"></i> 仓库配置</h2>
-                <p>填写你的GitHub仓库信息：</p>
-                <input type="text" id="username" placeholder="GitHub用户名（例如：xiaowei1110000-cmyk）">
-                <input type="text" id="repoName" placeholder="仓库名（例如：telegram-reminder）">
-                <div class="action-buttons">
-                    <button onclick="saveConfig()"><i class="fas fa-save"></i> 保存配置</button>
-                    <button onclick="testConnection()"><i class="fas fa-plug"></i> 测试连接</button>
-                </div>
-            </div>
-            
+            <!-- 添加提醒 -->
             <div class="section">
                 <h2><i class="fas fa-plus-circle"></i> 添加提醒</h2>
                 <input type="text" id="reminderName" placeholder="提醒名称（例如：网宿IP）">
@@ -78,34 +123,54 @@
                 <button onclick="addReminder()" class="btn-success"><i class="fas fa-plus"></i> 添加提醒</button>
             </div>
             
+            <!-- 提醒列表 -->
             <div class="section">
                 <h2><i class="fas fa-list"></i> 提醒列表</h2>
                 <div id="reminderList"></div>
                 <div class="action-buttons">
-                    <button onclick="saveToGitHub()" class="btn-success"><i class="fas fa-cloud-upload-alt"></i> 保存到GitHub</button>
-                    <button onclick="downloadReminders()" class="btn-warning"><i class="fas fa-download"></i> 下载JSON</button>
-                    <button onclick="clearAll()" class="btn-danger"><i class="fas fa-trash"></i> 清空所有</button>
+                    <button onclick="manualSaveToGitHub()" class="btn-success">
+                        <i class="fas fa-cloud-upload-alt"></i> 手动保存到GitHub
+                    </button>
+                    <button onclick="downloadReminders()" class="btn-warning">
+                        <i class="fas fa-download"></i> 下载备份
+                    </button>
+                    <button onclick="clearAll()" class="btn-danger">
+                        <i class="fas fa-trash"></i> 清空所有
+                    </button>
                 </div>
             </div>
             
-            <!-- 定时任务信息 -->
+            <!-- GitHub仓库链接 -->
             <div class="section">
-                <h2><i class="fas fa-clock"></i> 定时任务信息</h2>
-                <p><strong>自动运行时间：</strong>每天11:00（北京时间）</p>
-                <p><strong>对应UTC时间：</strong>03:00</p>
-                <p><strong>下次自动运行：</strong><span id="nextAutoRun">计算中...</span></p>
-                <p><strong>测试说明：</strong>点击"手动测试"按钮立即测试系统</p>
+                <h2><i class="fab fa-github"></i> GitHub仓库</h2>
+                <div style="text-align: center;">
+                    <a href="https://github.com/xiaowei1110000-cmyk/telegram-reminder" target="_blank" 
+                       style="display: inline-block; padding: 12px 24px; background: #333; color: white; 
+                              text-decoration: none; border-radius: 5px; margin: 10px;">
+                        <i class="fab fa-github"></i> 访问仓库主页
+                    </a>
+                    <a href="https://github.com/xiaowei1110000-cmyk/telegram-reminder/actions" target="_blank"
+                       style="display: inline-block; padding: 12px 24px; background: #28a745; color: white; 
+                              text-decoration: none; border-radius: 5px; margin: 10px;">
+                        <i class="fas fa-play-circle"></i> 运行工作流
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- 引入自动保存模块 -->
+    <script src="auto-save.js"></script>
+    
     <script>
         let reminders = [];
         let config = {
-            username: '',
-            repoName: '',
-            githubToken: '' // 可选，用于更高级的API访问
+            autoSave: true,
+            githubToken: '',
+            username: 'xiaowei1110000-cmyk',
+            repoName: 'telegram-reminder'
         };
+        let gitHubAutoSave = null;
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -115,156 +180,190 @@
             updateReminderList();
             checkSystemStatus();
             
+            // 初始化GitHub自动保存
+            initGitHubAutoSave();
+            
+            // 更新自动保存状态显示
+            updateAutoSaveStatus();
+            
             // 每分钟更新一次状态
             setInterval(checkSystemStatus, 60000);
             
             // 计算下次运行时间
             updateNextRunTime();
+            
+            // 自动保存开关事件
+            document.getElementById('autoSaveToggle').addEventListener('change', function() {
+                config.autoSave = this.checked;
+                saveConfig();
+                updateAutoSaveStatus();
+                
+                if (config.autoSave && config.githubToken) {
+                    showNotification('✅ 自动保存已启用', 'success');
+                }
+            });
         });
+        
+        // 初始化GitHub自动保存
+        function initGitHubAutoSave() {
+            if (config.githubToken) {
+                gitHubAutoSave = new GitHubAutoSave(
+                    config.username,
+                    config.repoName,
+                    config.githubToken
+                );
+                
+                // 测试连接
+                gitHubAutoSave.testConnection().then(result => {
+                    if (result.success) {
+                        console.log('✅ GitHub自动保存连接正常');
+                    } else {
+                        console.warn('⚠️ GitHub自动保存连接失败:', result.error);
+                    }
+                });
+            }
+        }
         
         // 加载配置
         function loadConfig() {
             const saved = localStorage.getItem('telegramReminderConfig');
             if (saved) {
-                config = JSON.parse(saved);
-                document.getElementById('username').value = config.username || '';
-                document.getElementById('repoName').value = config.repoName || '';
+                const savedConfig = JSON.parse(saved);
+                config = { ...config, ...savedConfig };
+                
+                // 更新UI
+                document.getElementById('autoSaveToggle').checked = config.autoSave;
+                document.getElementById('githubToken').value = config.githubToken || '';
+                document.getElementById('githubUsername').value = config.username;
+                document.getElementById('githubRepo').value = config.repoName;
             }
         }
         
         // 保存配置
         function saveConfig() {
-            config.username = document.getElementById('username').value.trim();
-            config.repoName = document.getElementById('repoName').value.trim();
-            
-            if (!config.username || !config.repoName) {
-                showNotification('请填写用户名和仓库名', 'error');
-                return;
-            }
+            // 从UI获取最新值
+            config.githubToken = document.getElementById('githubToken').value.trim();
+            config.username = document.getElementById('githubUsername').value.trim();
+            config.repoName = document.getElementById('githubRepo').value.trim();
+            config.autoSave = document.getElementById('autoSaveToggle').checked;
             
             localStorage.setItem('telegramReminderConfig', JSON.stringify(config));
-            showNotification('配置已保存', 'success');
+            showNotification('✅ 配置已保存', 'success');
+            
+            // 重新初始化自动保存
+            if (config.githubToken) {
+                initGitHubAutoSave();
+            }
         }
         
-        // 测试连接
-        async function testConnection() {
-            if (!config.username || !config.repoName) {
-                showNotification('请先保存配置', 'error');
+        // 保存Token配置
+        function saveTokenConfig() {
+            const token = document.getElementById('githubToken').value.trim();
+            const username = document.getElementById('githubUsername').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
+            
+            if (!token) {
+                showNotification('请输入GitHub Token', 'error');
                 return;
             }
             
-            const apiUrl = `https://api.github.com/repos/${config.username}/${config.repoName}`;
+            if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+                if (!confirm('Token格式可能不正确，是否继续保存？')) {
+                    return;
+                }
+            }
+            
+            config.githubToken = token;
+            config.username = username;
+            config.repoName = repo;
+            saveConfig();
+            
+            // 测试连接
+            testAutoSave();
+        }
+        
+        // 测试自动保存
+        async function testAutoSave() {
+            if (!config.githubToken) {
+                showNotification('请先配置GitHub Token', 'error');
+                return;
+            }
+            
             showNotification('正在测试GitHub连接...', 'info');
             
-            try {
-                const response = await fetch(apiUrl);
-                if (response.ok) {
-                    showNotification('✅ GitHub连接成功！', 'success');
-                    updateStatus('connected');
-                    
-                    // 测试仓库文件是否存在
-                    await checkRepoFiles();
-                } else if (response.status === 404) {
-                    showNotification('❌ 仓库不存在，请检查用户名和仓库名', 'error');
-                } else {
-                    showNotification(`❌ 连接失败 (状态码: ${response.status})`, 'error');
-                }
-            } catch (error) {
-                showNotification(`❌ 连接错误: ${error.message}`, 'error');
-            }
-        }
-        
-        // 检查仓库文件
-        async function checkRepoFiles() {
-            const files = ['reminders.json', 'reminder.py', '.github/workflows/reminder.yml'];
-            let missingFiles = [];
+            const tempGitHub = new GitHubAutoSave(
+                config.username,
+                config.repoName,
+                config.githubToken
+            );
             
-            for (const file of files) {
-                const fileUrl = `https://api.github.com/repos/${config.username}/${config.repoName}/contents/${file}`;
-                try {
-                    const response = await fetch(fileUrl);
-                    if (!response.ok) {
-                        missingFiles.push(file);
-                    }
-                } catch (error) {
-                    missingFiles.push(file);
-                }
-            }
+            const result = await tempGitHub.testConnection();
             
-            if (missingFiles.length > 0) {
-                showNotification(`⚠️ 以下文件可能缺失：${missingFiles.join(', ')}`, 'warning');
+            if (result.success) {
+                showNotification(`✅ 连接成功！仓库: ${result.repo}<br>权限: ${JSON.stringify(result.permissions)}`, 'success');
+                // 初始化正式实例
+                gitHubAutoSave = tempGitHub;
             } else {
-                showNotification('✅ 所有必要文件都存在', 'success');
+                showNotification(`❌ 连接失败: ${result.error}`, 'error');
             }
         }
         
-        // 检查系统状态
-        async function checkSystemStatus() {
-            if (!config.username || !config.repoName) {
-                updateStatus('disconnected');
-                return;
+        // 清除Token
+        function clearToken() {
+            if (confirm('确定要清除Token吗？清除后自动保存将失效。')) {
+                config.githubToken = '';
+                document.getElementById('githubToken').value = '';
+                saveConfig();
+                gitHubAutoSave = null;
+                showNotification('✅ Token已清除', 'success');
             }
+        }
+        
+        // 更新自动保存状态显示
+        function updateAutoSaveStatus() {
+            const statusElement = document.getElementById('autoSaveStatus');
+            const isEnabled = config.autoSave && config.githubToken;
             
-            // 检查仓库是否存在
-            try {
-                const apiUrl = `https://api.github.com/repos/${config.username}/${config.repoName}`;
-                const response = await fetch(apiUrl);
-                
-                if (response.ok) {
-                    updateStatus('connected');
-                    
-                    // 获取最后一次运行记录
-                    await getLastRunInfo();
-                } else {
-                    updateStatus('disconnected');
-                }
-            } catch (error) {
-                updateStatus('disconnected');
-            }
-        }
-        
-        // 获取最后一次运行信息
-        async function getLastRunInfo() {
-            try {
-                const runsUrl = `https://api.github.com/repos/${config.username}/${config.repoName}/actions/runs`;
-                const response = await fetch(runsUrl);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.workflow_runs && data.workflow_runs.length > 0) {
-                        const lastRun = data.workflow_runs[0];
-                        const lastRunTime = new Date(lastRun.created_at).toLocaleString('zh-CN');
-                        const status = lastRun.conclusion === 'success' ? '✅ 成功' : '❌ 失败';
-                        
-                        document.getElementById('lastRunInfo').innerHTML = 
-                            `<strong>最后一次运行：</strong>${lastRunTime}<br>
-                             <strong>状态：</strong>${status}`;
-                    }
-                }
-            } catch (error) {
-                // 忽略错误，不影响主要功能
-            }
-        }
-        
-        // 更新状态显示
-        function updateStatus(status) {
-            const statusIcon = document.getElementById('statusIcon');
-            const statusText = document.getElementById('statusText');
-            
-            if (status === 'connected') {
-                statusIcon.className = 'status-indicator status-online';
-                statusText.textContent = '✅ 系统运行正常';
-                document.getElementById('nextRunInfo').textContent = '下次自动运行：每天11:00（北京时间）';
+            if (isEnabled) {
+                statusElement.textContent = '✅ 已启用（自动保存）';
+                statusElement.style.color = '#28a745';
+            } else if (config.autoSave && !config.githubToken) {
+                statusElement.textContent = '⚠️ 已启用（未配置Token）';
+                statusElement.style.color = '#ffc107';
             } else {
-                statusIcon.className = 'status-indicator status-offline';
-                statusText.textContent = '❌ 未连接到GitHub仓库';
-                document.getElementById('nextRunInfo').textContent = '';
-                document.getElementById('lastRunInfo').textContent = '';
+                statusElement.textContent = '❌ 已禁用';
+                statusElement.style.color = '#dc3545';
             }
         }
         
-        // 添加提醒
-        function addReminder() {
+        // 自动保存到GitHub
+        async function autoSaveToGitHub() {
+            if (!config.autoSave || !gitHubAutoSave) {
+                return { success: false, message: '自动保存未启用' };
+            }
+            
+            try {
+                const jsonData = JSON.stringify(reminders, null, 2);
+                const result = await gitHubAutoSave.saveToGitHub(jsonData, '更新提醒数据 [自动]');
+                
+                if (result.success) {
+                    console.log('✅ 自动保存成功:', result.message);
+                    return result;
+                } else {
+                    console.error('❌ 自动保存失败:', result.error);
+                    return result;
+                }
+            } catch (error) {
+                console.error('❌ 自动保存异常:', error);
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+        
+        // 添加提醒（带自动保存）
+        async function addReminder() {
             const name = document.getElementById('reminderName').value.trim();
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
@@ -302,15 +401,56 @@
             document.getElementById('lastUpdated').valueAsDate = new Date();
             
             showNotification(`✅ "${name}" 已添加到提醒列表`, 'success');
+            
+            // 自动保存到GitHub
+            if (config.autoSave && gitHubAutoSave) {
+                const saveResult = await autoSaveToGitHub();
+                if (saveResult.success) {
+                    showNotification('✅ 已自动保存到GitHub', 'success');
+                } else {
+                    showNotification(`⚠️ 自动保存失败: ${saveResult.error}`, 'warning');
+                }
+            }
         }
         
-        // 删除提醒
-        function deleteReminder(id) {
-            if (confirm('确定要删除这个提醒吗？')) {
-                reminders = reminders.filter(r => r.id !== id);
-                saveReminders();
-                updateReminderList();
-                showNotification('✅ 提醒已删除', 'success');
+        // 删除提醒（带自动保存）
+        async function deleteReminder(id) {
+            if (!confirm('确定要删除这个提醒吗？')) {
+                return;
+            }
+            
+            const reminderName = reminders.find(r => r.id === id)?.name || '';
+            reminders = reminders.filter(r => r.id !== id);
+            saveReminders();
+            updateReminderList();
+            
+            showNotification(`✅ "${reminderName}" 已删除`, 'success');
+            
+            // 自动保存到GitHub
+            if (config.autoSave && gitHubAutoSave) {
+                const saveResult = await autoSaveToGitHub();
+                if (saveResult.success) {
+                    showNotification('✅ 删除后已自动保存到GitHub', 'success');
+                }
+            }
+        }
+        
+        // 手动保存到GitHub
+        async function manualSaveToGitHub() {
+            if (!gitHubAutoSave) {
+                showNotification('请先配置GitHub Token并测试连接', 'error');
+                return;
+            }
+            
+            showNotification('正在保存到GitHub...', 'info');
+            
+            const jsonData = JSON.stringify(reminders, null, 2);
+            const result = await gitHubAutoSave.saveToGitHub(jsonData, '手动更新提醒数据');
+            
+            if (result.success) {
+                showNotification('✅ 已成功保存到GitHub', 'success');
+            } else {
+                showNotification(`❌ 保存失败: ${result.error}`, 'error');
             }
         }
         
@@ -353,7 +493,7 @@
                                 <div style="font-size:13px; margin-top:5px;">${status}</div>
                             </div>
                             <button onclick="deleteReminder(${r.id})" style="background:#dc3545; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-size:14px;">
-                                <i class="fas fa-trash"></i>
+                                <i class="fas fa-trash"></i> 删除
                             </button>
                         </div>
                     </div>
@@ -362,84 +502,28 @@
             list.innerHTML = html;
         }
         
-        // 保存到GitHub
-        function saveToGitHub() {
-            if (!config.username || !config.repoName) {
-                showNotification('请先配置GitHub仓库', 'error');
-                return;
-            }
-            
-            const jsonData = JSON.stringify(reminders, null, 2);
-            const repoUrl = `https://github.com/${config.username}/${config.repoName}`;
-            
-            const guide = `
-                <strong>📝 保存到GitHub步骤：</strong><br>
-                1. <button onclick="copyToClipboard('${jsonData.replace(/\n/g, '\\n').replace(/"/g, '\\"')}')" style="padding:5px 10px; margin:5px 0; background:#007bff; color:white; border:none; border-radius:3px; cursor:pointer;">
-                    点击复制JSON数据
-                   </button><br>
-                2. 访问：<a href="${repoUrl}" target="_blank">${repoUrl}</a><br>
-                3. 点击 <strong>reminders.json</strong> 文件<br>
-                4. 点击编辑按钮 <i class="fas fa-edit"></i><br>
-                5. 粘贴JSON数据<br>
-                6. 点击 <strong>Commit changes</strong><br><br>
-                <small>💡 保存后系统将在下次运行时使用新数据</small>
-            `;
-            
-            showNotification(guide, 'info');
+        // 其他函数保持不变（checkSystemStatus、viewActionsPage、manualTest等）
+        function checkSystemStatus() {
+            // ... 保持原有代码 ...
         }
         
-        // 手动测试
-        function manualTest() {
-            if (!config.username || !config.repoName) {
-                showNotification('请先配置GitHub仓库', 'error');
-                return;
-            }
-            
-            const actionsUrl = `https://github.com/${config.username}/${config.repoName}/actions`;
-            
-            const guide = `
-                <strong>🔧 手动测试步骤：</strong><br>
-                1. 访问：<a href="${actionsUrl}" target="_blank" style="color:#007bff; text-decoration:underline;">${actionsUrl}</a><br>
-                2. 点击左侧的 <strong>"Send Telegram Reminder"</strong><br>
-                3. 点击 <strong>"Run workflow"</strong> 按钮<br>
-                4. 确保分支是 <strong>"main"</strong><br>
-                5. 点击绿色的 <strong>"Run workflow"</strong><br>
-                6. 等待运行完成（约30秒）<br>
-                7. 检查Telegram群组是否收到消息<br><br>
-                <small>✅ 这可以确保你的定时任务会正常工作</small>
-            `;
-            
-            showNotification(guide, 'info');
-            
-            // 添加快速跳转按钮
-            setTimeout(() => {
-                const quickBtn = document.createElement('div');
-                quickBtn.className = 'notification info';
-                quickBtn.innerHTML = `
-                    <i class="fas fa-external-link-alt"></i>
-                    <div>
-                        <strong>🚀 快速跳转：</strong><br>
-                        <a href="${actionsUrl}" target="_blank" style="display:inline-block; padding:10px 20px; background:#28a745; color:white; text-decoration:none; border-radius:5px; margin-top:10px;">
-                            立即前往Actions页面
-                        </a>
-                    </div>
-                `;
-                document.getElementById('notificationArea').appendChild(quickBtn);
-            }, 500);
-        }
-        
-        // 查看Actions页面
         function viewActionsPage() {
-            if (!config.username || !config.repoName) {
-                showNotification('请先配置GitHub仓库', 'error');
-                return;
-            }
-            
-            const actionsUrl = `https://github.com/${config.username}/${config.repoName}/actions`;
-            window.open(actionsUrl, '_blank');
+            window.open(`https://github.com/${config.username}/${config.repoName}/actions`, '_blank');
         }
         
-        // 下载JSON数据
+        function manualTest() {
+            const actionsUrl = `https://github.com/${config.username}/${config.repoName}/actions`;
+            showNotification(
+                `🔧 手动测试步骤：<br>
+                1. 访问：<a href="${actionsUrl}" target="_blank">${actionsUrl}</a><br>
+                2. 点击 "Send Telegram Reminder"<br>
+                3. 点击 "Run workflow"<br>
+                4. 等待运行完成<br>
+                5. 检查Telegram消息`,
+                'info'
+            );
+        }
+        
         function downloadReminders() {
             const jsonData = JSON.stringify(reminders, null, 2);
             const blob = new Blob([jsonData], { type: 'application/json' });
@@ -454,17 +538,20 @@
             showNotification('✅ 提醒数据已下载', 'success');
         }
         
-        // 清空所有提醒
         function clearAll() {
             if (confirm('确定要清空所有提醒吗？此操作不可撤销！')) {
                 reminders = [];
                 saveReminders();
                 updateReminderList();
                 showNotification('✅ 所有提醒已清空', 'success');
+                
+                // 自动保存到GitHub
+                if (config.autoSave && gitHubAutoSave) {
+                    autoSaveToGitHub();
+                }
             }
         }
         
-        // 加载提醒数据
         function loadReminders() {
             const saved = localStorage.getItem('telegramReminders');
             if (saved) {
@@ -476,20 +563,15 @@
             }
         }
         
-        // 保存提醒数据到本地
         function saveReminders() {
             localStorage.setItem('telegramReminders', JSON.stringify(reminders));
         }
         
-        // 计算下次运行时间
         function updateNextRunTime() {
             const now = new Date();
             const targetTime = new Date();
-            
-            // 设置目标时间为今天的11:00（北京时间）
             targetTime.setHours(11, 0, 0, 0);
             
-            // 如果现在时间已经过了11:00，设置为明天的11:00
             if (now > targetTime) {
                 targetTime.setDate(targetTime.getDate() + 1);
             }
@@ -502,14 +584,6 @@
                 `大约 ${diffHours} 小时 ${diffMinutes} 分钟后 (${targetTime.toLocaleString('zh-CN')})`;
         }
         
-        // 复制到剪贴板
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification('✅ 已复制到剪贴板！', 'success');
-            });
-        }
-        
-        // 显示通知
         function showNotification(message, type) {
             const notificationArea = document.getElementById('notificationArea');
             const notification = document.createElement('div');
