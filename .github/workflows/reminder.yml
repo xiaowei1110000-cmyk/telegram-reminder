@@ -2,44 +2,39 @@ name: Send Telegram Reminder
 
 on:
   schedule:
-    # 每天北京时间11:00运行（UTC时间3:00）
-    - cron: '0 3 * * *'
-  workflow_dispatch:
-    # 允许手动触发
-  push:
-    paths:
-      - 'reminders.json'
-    # 当reminders.json被更新时也运行
+    - cron: '0 3 * * *'  # 每天UTC 3:00运行（即北京时间11:00）
+  workflow_dispatch:      # 允许手动触发
 
 jobs:
   send-reminder:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: 检出代码
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        
-    - name: 设置Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-        
-    - name: 安装依赖
-      run: pip install requests
-        
-    - name: 运行提醒脚本
-      env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: python reminder.py
-        
-    - name: 提交更新
-      if: success()
-      run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "github-actions@github.com"
-        git add reminders.json
-        git diff --quiet && git diff --staged --quiet || git commit -m "更新提醒时间 [自动]"
-        git push || echo "推送失败，可能是没有更改"
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Check reminders
+        id: check_reminders
+        run: |
+          # 读取reminders.json文件
+          if [ -f reminders.json ]; then
+            # 解析JSON，查找今日到期的项目
+            # 这里需要添加具体的检查逻辑
+            echo "有今日到期的提醒项目"
+          else
+            echo "没有提醒数据"
+          fi
+      
+      - name: Send Telegram notification
+        if: steps.check_reminders.outputs.has_reminders == 'true'
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            📅 今日提醒
+            
+            有以下项目需要处理：
+            
+            {{ 这里列出今日到期的项目 }}
+            
+            ⏰ 请及时处理！
