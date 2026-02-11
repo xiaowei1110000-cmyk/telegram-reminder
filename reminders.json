@@ -20,5 +20,16 @@
     "lastNotified": null,
     "notified": false,
     "enabled": true
+  },
+  {
+    "id": 1770800905357,
+    "name": "停留页，导航页，Cpa图片域名",
+    "lastUpdated": "2026-02-10",
+    "nextReminder": "2026-02-20",
+    "days": 10,
+    "createdAt": "2026-02-11T09:08:25.357Z",
+    "lastNotified": null,
+    "notified": false,
+    "enabled": true
   }
 ]
