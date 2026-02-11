@@ -23,6 +23,12 @@
         .success { background: #d4edda; border-left: 4px solid #28a745; color: #155724; }
         .error { background: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
         .info { background: #d1ecf1; border-left: 4px solid #17a2b8; color: #0c5460; }
+        .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+        .status-online { background: #28a745; animation: pulse 2s infinite; }
+        .status-offline { background: #dc3545; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .action-buttons { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .action-buttons button { flex: 1; min-width: 120px; }
     </style>
 </head>
 <body>
@@ -35,11 +41,33 @@
         <div class="content">
             <div id="notificationArea"></div>
             
+            <!-- 系统状态监控 -->
             <div class="section">
-                <h2><i class="fas fa-cog"></i> 基本配置</h2>
-                <p>你的GitHub仓库地址：</p>
-                <input type="text" id="repoUrl" placeholder="https://api.github.com/repos/用户名/仓库名">
-                <button onclick="testConnection()"><i class="fas fa-plug"></i> 测试连接</button>
+                <h2><i class="fas fa-chart-line"></i> 系统状态监控</h2>
+                <div id="systemStatus">
+                    <p><span class="status-indicator status-offline" id="statusIcon"></span> 
+                       <span id="statusText">正在检查系统状态...</span>
+                    </p>
+                    <p id="nextRunInfo" style="color:#666; font-size:14px; margin-top:5px;"></p>
+                    <p id="lastRunInfo" style="color:#666; font-size:14px;"></p>
+                </div>
+                
+                <div class="action-buttons">
+                    <button onclick="checkSystemStatus()"><i class="fas fa-sync-alt"></i> 刷新状态</button>
+                    <button onclick="viewActionsPage()" class="btn-success"><i class="fab fa-github"></i> 查看Actions</button>
+                    <button onclick="manualTest()" class="btn-warning"><i class="fas fa-play"></i> 手动测试</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2><i class="fas fa-cog"></i> 仓库配置</h2>
+                <p>填写你的GitHub仓库信息：</p>
+                <input type="text" id="username" placeholder="GitHub用户名（例如：xiaowei1110000-cmyk）">
+                <input type="text" id="repoName" placeholder="仓库名（例如：telegram-reminder）">
+                <div class="action-buttons">
+                    <button onclick="saveConfig()"><i class="fas fa-save"></i> 保存配置</button>
+                    <button onclick="testConnection()"><i class="fas fa-plug"></i> 测试连接</button>
+                </div>
             </div>
             
             <div class="section">
@@ -53,45 +81,185 @@
             <div class="section">
                 <h2><i class="fas fa-list"></i> 提醒列表</h2>
                 <div id="reminderList"></div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <div class="action-buttons">
                     <button onclick="saveToGitHub()" class="btn-success"><i class="fas fa-cloud-upload-alt"></i> 保存到GitHub</button>
-                    <button onclick="testTelegram()" class="btn-warning"><i class="fas fa-paper-plane"></i> 测试发送</button>
+                    <button onclick="downloadReminders()" class="btn-warning"><i class="fas fa-download"></i> 下载JSON</button>
+                    <button onclick="clearAll()" class="btn-danger"><i class="fas fa-trash"></i> 清空所有</button>
                 </div>
+            </div>
+            
+            <!-- 定时任务信息 -->
+            <div class="section">
+                <h2><i class="fas fa-clock"></i> 定时任务信息</h2>
+                <p><strong>自动运行时间：</strong>每天11:00（北京时间）</p>
+                <p><strong>对应UTC时间：</strong>03:00</p>
+                <p><strong>下次自动运行：</strong><span id="nextAutoRun">计算中...</span></p>
+                <p><strong>测试说明：</strong>点击"手动测试"按钮立即测试系统</p>
             </div>
         </div>
     </div>
 
     <script>
         let reminders = [];
-        let githubRepo = '';
+        let config = {
+            username: '',
+            repoName: '',
+            githubToken: '' // 可选，用于更高级的API访问
+        };
         
-        // 设置今天日期
+        // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('lastUpdated').valueAsDate = new Date();
-            loadFromLocalStorage();
+            loadConfig();
+            loadReminders();
             updateReminderList();
+            checkSystemStatus();
+            
+            // 每分钟更新一次状态
+            setInterval(checkSystemStatus, 60000);
+            
+            // 计算下次运行时间
+            updateNextRunTime();
         });
         
-        // 测试GitHub连接
-        async function testConnection() {
-            const url = document.getElementById('repoUrl').value.trim();
-            if (!url) {
-                showNotification('请输入GitHub仓库地址', 'error');
+        // 加载配置
+        function loadConfig() {
+            const saved = localStorage.getItem('telegramReminderConfig');
+            if (saved) {
+                config = JSON.parse(saved);
+                document.getElementById('username').value = config.username || '';
+                document.getElementById('repoName').value = config.repoName || '';
+            }
+        }
+        
+        // 保存配置
+        function saveConfig() {
+            config.username = document.getElementById('username').value.trim();
+            config.repoName = document.getElementById('repoName').value.trim();
+            
+            if (!config.username || !config.repoName) {
+                showNotification('请填写用户名和仓库名', 'error');
                 return;
             }
             
+            localStorage.setItem('telegramReminderConfig', JSON.stringify(config));
+            showNotification('配置已保存', 'success');
+        }
+        
+        // 测试连接
+        async function testConnection() {
+            if (!config.username || !config.repoName) {
+                showNotification('请先保存配置', 'error');
+                return;
+            }
+            
+            const apiUrl = `https://api.github.com/repos/${config.username}/${config.repoName}`;
             showNotification('正在测试GitHub连接...', 'info');
             
             try {
-                const response = await fetch(url);
+                const response = await fetch(apiUrl);
                 if (response.ok) {
-                    githubRepo = url;
                     showNotification('✅ GitHub连接成功！', 'success');
+                    updateStatus('connected');
+                    
+                    // 测试仓库文件是否存在
+                    await checkRepoFiles();
+                } else if (response.status === 404) {
+                    showNotification('❌ 仓库不存在，请检查用户名和仓库名', 'error');
                 } else {
-                    showNotification('❌ GitHub连接失败，请检查地址', 'error');
+                    showNotification(`❌ 连接失败 (状态码: ${response.status})`, 'error');
                 }
             } catch (error) {
-                showNotification(`❌ 连接失败: ${error.message}`, 'error');
+                showNotification(`❌ 连接错误: ${error.message}`, 'error');
+            }
+        }
+        
+        // 检查仓库文件
+        async function checkRepoFiles() {
+            const files = ['reminders.json', 'reminder.py', '.github/workflows/reminder.yml'];
+            let missingFiles = [];
+            
+            for (const file of files) {
+                const fileUrl = `https://api.github.com/repos/${config.username}/${config.repoName}/contents/${file}`;
+                try {
+                    const response = await fetch(fileUrl);
+                    if (!response.ok) {
+                        missingFiles.push(file);
+                    }
+                } catch (error) {
+                    missingFiles.push(file);
+                }
+            }
+            
+            if (missingFiles.length > 0) {
+                showNotification(`⚠️ 以下文件可能缺失：${missingFiles.join(', ')}`, 'warning');
+            } else {
+                showNotification('✅ 所有必要文件都存在', 'success');
+            }
+        }
+        
+        // 检查系统状态
+        async function checkSystemStatus() {
+            if (!config.username || !config.repoName) {
+                updateStatus('disconnected');
+                return;
+            }
+            
+            // 检查仓库是否存在
+            try {
+                const apiUrl = `https://api.github.com/repos/${config.username}/${config.repoName}`;
+                const response = await fetch(apiUrl);
+                
+                if (response.ok) {
+                    updateStatus('connected');
+                    
+                    // 获取最后一次运行记录
+                    await getLastRunInfo();
+                } else {
+                    updateStatus('disconnected');
+                }
+            } catch (error) {
+                updateStatus('disconnected');
+            }
+        }
+        
+        // 获取最后一次运行信息
+        async function getLastRunInfo() {
+            try {
+                const runsUrl = `https://api.github.com/repos/${config.username}/${config.repoName}/actions/runs`;
+                const response = await fetch(runsUrl);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.workflow_runs && data.workflow_runs.length > 0) {
+                        const lastRun = data.workflow_runs[0];
+                        const lastRunTime = new Date(lastRun.created_at).toLocaleString('zh-CN');
+                        const status = lastRun.conclusion === 'success' ? '✅ 成功' : '❌ 失败';
+                        
+                        document.getElementById('lastRunInfo').innerHTML = 
+                            `<strong>最后一次运行：</strong>${lastRunTime}<br>
+                             <strong>状态：</strong>${status}`;
+                    }
+                }
+            } catch (error) {
+                // 忽略错误，不影响主要功能
+            }
+        }
+        
+        // 更新状态显示
+        function updateStatus(status) {
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            
+            if (status === 'connected') {
+                statusIcon.className = 'status-indicator status-online';
+                statusText.textContent = '✅ 系统运行正常';
+                document.getElementById('nextRunInfo').textContent = '下次自动运行：每天11:00（北京时间）';
+            } else {
+                statusIcon.className = 'status-indicator status-offline';
+                statusText.textContent = '❌ 未连接到GitHub仓库';
+                document.getElementById('nextRunInfo').textContent = '';
+                document.getElementById('lastRunInfo').textContent = '';
             }
         }
         
@@ -125,7 +293,7 @@
             };
             
             reminders.push(reminder);
-            saveToLocalStorage();
+            saveReminders();
             updateReminderList();
             
             // 清空表单
@@ -140,7 +308,7 @@
         function deleteReminder(id) {
             if (confirm('确定要删除这个提醒吗？')) {
                 reminders = reminders.filter(r => r.id !== id);
-                saveToLocalStorage();
+                saveReminders();
                 updateReminderList();
                 showNotification('✅ 提醒已删除', 'success');
             }
@@ -151,26 +319,40 @@
             const list = document.getElementById('reminderList');
             
             if (reminders.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color:#666;">暂无提醒项目</p>';
+                list.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">暂无提醒项目，请添加第一个提醒</p>';
                 return;
             }
             
             let html = '';
             reminders.forEach(r => {
-                const nextDate = new Date(r.lastUpdated);
+                const lastDate = new Date(r.lastUpdated);
+                const nextDate = new Date(lastDate);
                 nextDate.setDate(nextDate.getDate() + r.days);
                 const nextStr = nextDate.toLocaleDateString('zh-CN');
+                
+                const today = new Date();
+                const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+                
+                let status = '';
+                if (diffDays <= 0) {
+                    status = '<span style="color:#dc3545; font-weight:bold;">今日需要提醒</span>';
+                } else if (diffDays === 1) {
+                    status = '<span style="color:#ffc107; font-weight:bold;">明天提醒</span>';
+                } else {
+                    status = `<span>${diffDays}天后提醒</span>`;
+                }
                 
                 html += `
                     <div style="background:white; padding:15px; margin:10px 0; border-radius:8px; border-left:4px solid #0088cc;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
+                            <div style="flex:1;">
                                 <h4 style="margin:0 0 5px 0;">${r.name}</h4>
                                 <div style="font-size:14px; color:#666;">
                                     上次: ${r.lastUpdated} | 间隔: ${r.days}天 | 下次: ${nextStr}
                                 </div>
+                                <div style="font-size:13px; margin-top:5px;">${status}</div>
                             </div>
-                            <button onclick="deleteReminder(${r.id})" style="background:#dc3545; padding:8px 12px; font-size:14px;">
+                            <button onclick="deleteReminder(${r.id})" style="background:#dc3545; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-size:14px;">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -181,76 +363,109 @@
         }
         
         // 保存到GitHub
-        async function saveToGitHub() {
-            if (!githubRepo) {
-                showNotification('❌ 请先测试GitHub连接', 'error');
+        function saveToGitHub() {
+            if (!config.username || !config.repoName) {
+                showNotification('请先配置GitHub仓库', 'error');
                 return;
             }
             
-            showNotification('正在准备数据...', 'info');
-            
             const jsonData = JSON.stringify(reminders, null, 2);
+            const repoUrl = `https://github.com/${config.username}/${config.repoName}`;
             
             const guide = `
-                <strong>请手动保存到GitHub：</strong><br>
-                1. 复制下面的JSON数据<br>
-                2. 访问你的GitHub仓库：${githubRepo.replace('api.github.com/repos', 'github.com')}<br>
-                3. 点击 reminders.json 文件<br>
-                4. 点击编辑按钮（✏️）<br>
+                <strong>📝 保存到GitHub步骤：</strong><br>
+                1. <button onclick="copyToClipboard('${jsonData.replace(/\n/g, '\\n').replace(/"/g, '\\"')}')" style="padding:5px 10px; margin:5px 0; background:#007bff; color:white; border:none; border-radius:3px; cursor:pointer;">
+                    点击复制JSON数据
+                   </button><br>
+                2. 访问：<a href="${repoUrl}" target="_blank">${repoUrl}</a><br>
+                3. 点击 <strong>reminders.json</strong> 文件<br>
+                4. 点击编辑按钮 <i class="fas fa-edit"></i><br>
                 5. 粘贴JSON数据<br>
-                6. 点击 Commit changes
+                6. 点击 <strong>Commit changes</strong><br><br>
+                <small>💡 保存后系统将在下次运行时使用新数据</small>
+            `;
+            
+            showNotification(guide, 'info');
+        }
+        
+        // 手动测试
+        function manualTest() {
+            if (!config.username || !config.repoName) {
+                showNotification('请先配置GitHub仓库', 'error');
+                return;
+            }
+            
+            const actionsUrl = `https://github.com/${config.username}/${config.repoName}/actions`;
+            
+            const guide = `
+                <strong>🔧 手动测试步骤：</strong><br>
+                1. 访问：<a href="${actionsUrl}" target="_blank" style="color:#007bff; text-decoration:underline;">${actionsUrl}</a><br>
+                2. 点击左侧的 <strong>"Send Telegram Reminder"</strong><br>
+                3. 点击 <strong>"Run workflow"</strong> 按钮<br>
+                4. 确保分支是 <strong>"main"</strong><br>
+                5. 点击绿色的 <strong>"Run workflow"</strong><br>
+                6. 等待运行完成（约30秒）<br>
+                7. 检查Telegram群组是否收到消息<br><br>
+                <small>✅ 这可以确保你的定时任务会正常工作</small>
             `;
             
             showNotification(guide, 'info');
             
-            // 显示JSON数据
+            // 添加快速跳转按钮
             setTimeout(() => {
-                const notification = document.createElement('div');
-                notification.className = 'notification info';
-                notification.innerHTML = `
-                    <i class="fas fa-code"></i>
+                const quickBtn = document.createElement('div');
+                quickBtn.className = 'notification info';
+                quickBtn.innerHTML = `
+                    <i class="fas fa-external-link-alt"></i>
                     <div>
-                        <strong>提醒数据JSON：</strong><br>
-                        <textarea style="width:100%; height:100px; margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:5px; font-family:monospace;" readonly>${jsonData}</textarea>
-                        <button onclick="copyToClipboard('${jsonData.replace(/\n/g, '\\n').replace(/"/g, '\\"')}')" style="margin-top:5px; padding:5px 10px; background:#007bff; color:white; border:none; border-radius:3px; cursor:pointer;">
-                            复制到剪贴板
-                        </button>
+                        <strong>🚀 快速跳转：</strong><br>
+                        <a href="${actionsUrl}" target="_blank" style="display:inline-block; padding:10px 20px; background:#28a745; color:white; text-decoration:none; border-radius:5px; margin-top:10px;">
+                            立即前往Actions页面
+                        </a>
                     </div>
                 `;
-                document.getElementById('notificationArea').appendChild(notification);
+                document.getElementById('notificationArea').appendChild(quickBtn);
             }, 500);
         }
         
-        // 测试Telegram发送
-        function testTelegram() {
-            if (!githubRepo) {
-                showNotification('❌ 请先配置GitHub仓库', 'error');
+        // 查看Actions页面
+        function viewActionsPage() {
+            if (!config.username || !config.repoName) {
+                showNotification('请先配置GitHub仓库', 'error');
                 return;
             }
             
-            const actionsUrl = githubRepo.replace('api.github.com/repos', 'github.com') + '/actions';
-            
-            const guide = `
-                <strong>手动测试步骤：</strong><br>
-                1. 访问：<a href="${actionsUrl}" target="_blank">${actionsUrl}</a><br>
-                2. 在左侧找到 "Send Telegram Reminder"<br>
-                3. 点击 "Run workflow" 按钮<br>
-                4. 选择分支 "main"<br>
-                5. 点击绿色 "Run workflow" 按钮<br>
-                6. 等待运行完成（约30秒）<br>
-                7. 检查Telegram群组是否收到消息
-            `;
-            
-            showNotification(guide, 'info');
+            const actionsUrl = `https://github.com/${config.username}/${config.repoName}/actions`;
+            window.open(actionsUrl, '_blank');
         }
         
-        // 保存到本地存储
-        function saveToLocalStorage() {
-            localStorage.setItem('telegramReminders', JSON.stringify(reminders));
+        // 下载JSON数据
+        function downloadReminders() {
+            const jsonData = JSON.stringify(reminders, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'reminders-backup.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('✅ 提醒数据已下载', 'success');
         }
         
-        // 从本地存储加载
-        function loadFromLocalStorage() {
+        // 清空所有提醒
+        function clearAll() {
+            if (confirm('确定要清空所有提醒吗？此操作不可撤销！')) {
+                reminders = [];
+                saveReminders();
+                updateReminderList();
+                showNotification('✅ 所有提醒已清空', 'success');
+            }
+        }
+        
+        // 加载提醒数据
+        function loadReminders() {
             const saved = localStorage.getItem('telegramReminders');
             if (saved) {
                 try {
@@ -259,6 +474,32 @@
                     reminders = [];
                 }
             }
+        }
+        
+        // 保存提醒数据到本地
+        function saveReminders() {
+            localStorage.setItem('telegramReminders', JSON.stringify(reminders));
+        }
+        
+        // 计算下次运行时间
+        function updateNextRunTime() {
+            const now = new Date();
+            const targetTime = new Date();
+            
+            // 设置目标时间为今天的11:00（北京时间）
+            targetTime.setHours(11, 0, 0, 0);
+            
+            // 如果现在时间已经过了11:00，设置为明天的11:00
+            if (now > targetTime) {
+                targetTime.setDate(targetTime.getDate() + 1);
+            }
+            
+            const diffMs = targetTime - now;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            document.getElementById('nextAutoRun').textContent = 
+                `大约 ${diffHours} 小时 ${diffMinutes} 分钟后 (${targetTime.toLocaleString('zh-CN')})`;
         }
         
         // 复制到剪贴板
@@ -277,6 +518,7 @@
             let icon = 'fas fa-info-circle';
             if (type === 'success') icon = 'fas fa-check-circle';
             if (type === 'error') icon = 'fas fa-exclamation-circle';
+            if (type === 'warning') icon = 'fas fa-exclamation-triangle';
             
             notification.innerHTML = `<i class="${icon}"></i><div>${message}</div>`;
             notificationArea.appendChild(notification);
@@ -285,7 +527,7 @@
                 if (notification.parentNode === notificationArea) {
                     notificationArea.removeChild(notification);
                 }
-            }, 5000);
+            }, 10000);
         }
         
         // 导出函数到全局
