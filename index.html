@@ -508,6 +508,40 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 10px;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: var(--dark-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--secondary);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.warning {
+            background: var(--warning);
+        }
+        
+        .progress-fill.danger {
+            background: var(--danger);
+        }
     </style>
 </head>
 <body>
@@ -633,7 +667,7 @@
                     <label for="reminderName">提醒名称</label>
                     <div class="input-with-icon">
                         <i class="fas fa-tag"></i>
-                        <input type="text" id="reminderName" placeholder="例如：网宿IP更新">
+                        <input type="text" id="reminderName" placeholder="例如：网宿IP更新" onkeypress="if(event.key === 'Enter') addReminder()">
                     </div>
                 </div>
                 
@@ -650,6 +684,32 @@
                     <div class="input-with-icon">
                         <i class="fas fa-clock"></i>
                         <input type="number" id="reminderDays" value="3" min="1" max="365">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 预览下次提醒时间 -->
+            <div id="nextReminderPreview" style="margin: 15px 0; padding: 15px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; display: none;">
+                <h4 style="margin-bottom: 10px; color: var(--info);">
+                    <i class="fas fa-calendar-check"></i> 下次提醒时间预览
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <div class="meta-label">最后更新</div>
+                        <div class="meta-value" id="previewLastUpdate">--</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">下次提醒</div>
+                        <div class="meta-value" id="previewNextReminder" style="color: var(--secondary);">--</div>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>周期进度</span>
+                        <span id="previewProgressText">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="previewProgressBar" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
@@ -673,6 +733,9 @@
                         </span>
                         <span class="status-badge status-warning" id="pendingReminders">
                             <i class="fas fa-clock"></i> 0个即将到期
+                        </span>
+                        <span class="status-badge status-offline" id="overdueReminders">
+                            <i class="fas fa-exclamation-triangle"></i> 0个已过期
                         </span>
                     </div>
                 </div>
@@ -802,7 +865,68 @@
             
             // 初始化系统状态
             checkSystemStatus();
+            
+            // 为输入框添加实时预览
+            document.getElementById('lastUpdated').addEventListener('change', updatePreview);
+            document.getElementById('reminderDays').addEventListener('input', updatePreview);
+            
+            // 初始更新预览
+            updatePreview();
         });
+        
+        // 更新下次提醒预览
+        function updatePreview() {
+            const lastUpdated = document.getElementById('lastUpdated').value;
+            const days = parseInt(document.getElementById('reminderDays').value) || 3;
+            const previewDiv = document.getElementById('nextReminderPreview');
+            
+            if (!lastUpdated || isNaN(days) || days < 1) {
+                previewDiv.style.display = 'none';
+                return;
+            }
+            
+            previewDiv.style.display = 'block';
+            
+            // 计算下次提醒时间
+            const lastDate = new Date(lastUpdated);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(nextDate.getDate() + days);
+            
+            // 计算进度
+            const now = new Date();
+            const totalMs = nextDate - lastDate;
+            const elapsedMs = now - lastDate;
+            let progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+            
+            // 更新预览
+            document.getElementById('previewLastUpdate').textContent = formatDateSimple(lastDate);
+            document.getElementById('previewNextReminder').textContent = formatDateSimple(nextDate);
+            
+            const progressText = Math.round(progress) + '%';
+            document.getElementById('previewProgressText').textContent = progressText;
+            
+            const progressBar = document.getElementById('previewProgressBar');
+            progressBar.style.width = progress + '%';
+            
+            // 根据进度设置颜色
+            if (progress >= 90) {
+                progressBar.className = 'progress-fill danger';
+            } else if (progress >= 70) {
+                progressBar.className = 'progress-fill warning';
+            } else {
+                progressBar.className = 'progress-fill';
+            }
+        }
+        
+        // 简单格式化日期（仅日期）
+        function formatDateSimple(date) {
+            return date.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'short'
+            });
+        }
         
         // 加载配置
         function loadConfig() {
@@ -992,10 +1116,16 @@
                 return;
             }
             
+            // 计算下次提醒日期
+            const lastDate = new Date(lastUpdated);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(nextDate.getDate() + days);
+            
             const reminder = {
                 id: Date.now(),
                 name: name,
                 lastUpdated: lastUpdated,
+                nextReminder: nextDate.toISOString().split('T')[0], // 保存下次提醒日期
                 days: days,
                 createdAt: new Date().toISOString()
             };
@@ -1004,13 +1134,18 @@
             saveReminders();
             updateReminderList();
             
+            // 显示详细信息
+            const nextReminderStr = formatDate(nextDate);
+            showNotification(`✅ "${name}" 已添加<br>下次提醒时间: ${nextReminderStr}`, 'success');
+            
             // 清空表单
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('lastUpdated').value = today;
             
-            showNotification(`✅ "${name}" 已添加到提醒列表`, 'success');
+            // 更新预览
+            updatePreview();
             
             // 自动保存到GitHub
             if (config.autoSave && gitHubAutoSave) {
@@ -1029,12 +1164,14 @@
                 return;
             }
             
-            const reminderName = reminders.find(r => r.id === id)?.name || '';
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
+            
             reminders = reminders.filter(r => r.id !== id);
             saveReminders();
             updateReminderList();
             
-            showNotification(`✅ "${reminderName}" 已删除`, 'success');
+            showNotification(`✅ "${reminder.name}" 已删除`, 'success');
             
             // 自动保存到GitHub
             if (config.autoSave && gitHubAutoSave) {
@@ -1066,15 +1203,24 @@
             if (!reminder) return;
             
             const lastDate = new Date(reminder.lastUpdated);
-            const nextDate = new Date(lastDate);
-            nextDate.setDate(nextDate.getDate() + reminder.days);
+            const nextDate = reminder.nextReminder ? new Date(reminder.nextReminder) : new Date(lastDate);
+            if (!reminder.nextReminder) {
+                nextDate.setDate(nextDate.getDate() + reminder.days);
+            }
+            
+            // 计算进度
+            const now = new Date();
+            const totalMs = nextDate - lastDate;
+            const elapsedMs = now - lastDate;
+            const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
             
             const details = `
                 <strong>提醒详情:</strong><br>
                 <strong>名称:</strong> ${reminder.name}<br>
                 <strong>最后更新时间:</strong> ${formatDate(lastDate)}<br>
-                <strong>下次更新时间:</strong> ${formatDate(nextDate)}<br>
+                <strong>下次提醒时间:</strong> ${formatDate(nextDate)}<br>
                 <strong>间隔天数:</strong> ${reminder.days}天<br>
+                <strong>周期进度:</strong> ${Math.round(progress)}%<br>
                 <strong>创建时间:</strong> ${formatDate(new Date(reminder.createdAt))}<br>
                 <strong>提醒ID:</strong> ${reminder.id}
             `;
@@ -1082,17 +1228,50 @@
             showNotification(details, 'info');
         }
         
-        // 标记为完成
+        // 标记为完成（更新下次提醒时间）
         function markAsComplete(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const lastDate = new Date(today);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(nextDate.getDate() + reminder.days);
+            
+            // 更新提醒时间
+            reminder.lastUpdated = today;
+            reminder.nextReminder = nextDate.toISOString().split('T')[0];
+            
+            saveReminders();
+            updateReminderList();
+            
+            const nextReminderStr = formatDate(nextDate);
+            showNotification(`✅ "${reminder.name}" 已标记为完成<br>下次提醒时间: ${nextReminderStr}`, 'success');
+            
+            // 自动保存到GitHub
+            if (config.autoSave && gitHubAutoSave) {
+                autoSaveToGitHub();
+            }
+        }
+        
+        // 快速完成（设置为今天）
+        function quickComplete(id) {
             const reminder = reminders.find(r => r.id === id);
             if (!reminder) return;
             
             const today = new Date().toISOString().split('T')[0];
             reminder.lastUpdated = today;
             
+            // 重新计算下次提醒
+            const lastDate = new Date(today);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(nextDate.getDate() + reminder.days);
+            reminder.nextReminder = nextDate.toISOString().split('T')[0];
+            
             saveReminders();
             updateReminderList();
-            showNotification(`✅ "${reminder.name}" 已标记为完成，下次提醒时间已更新`, 'success');
+            
+            showNotification(`✅ "${reminder.name}" 已更新为今天`, 'success');
             
             // 自动保存到GitHub
             if (config.autoSave && gitHubAutoSave) {
@@ -1126,12 +1305,15 @@
             const totalElement = document.getElementById('totalReminders');
             const activeElement = document.getElementById('activeReminders');
             const pendingElement = document.getElementById('pendingReminders');
+            const overdueElement = document.getElementById('overdueReminders');
             const dueTodayElement = document.getElementById('dueToday');
             
             // 计算统计数据
             const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
             let dueTodayCount = 0;
             let pendingCount = 0;
+            let overdueCount = 0;
             
             if (reminders.length === 0) {
                 list.innerHTML = `
@@ -1145,28 +1327,53 @@
                 totalElement.textContent = '0';
                 activeElement.innerHTML = '<i class="fas fa-check-circle"></i> 0个活动';
                 pendingElement.innerHTML = '<i class="fas fa-clock"></i> 0个即将到期';
+                overdueElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 0个已过期';
                 dueTodayElement.textContent = '0';
                 return;
             }
             
+            // 确保每个提醒都有nextReminder字段
+            reminders.forEach(reminder => {
+                if (!reminder.nextReminder) {
+                    const lastDate = new Date(reminder.lastUpdated);
+                    const nextDate = new Date(lastDate);
+                    nextDate.setDate(nextDate.getDate() + reminder.days);
+                    reminder.nextReminder = nextDate.toISOString().split('T')[0];
+                }
+            });
+            saveReminders();
+            
             let html = '';
             reminders.forEach(r => {
                 const lastDate = new Date(r.lastUpdated);
-                const nextDate = new Date(lastDate);
-                nextDate.setDate(nextDate.getDate() + r.days);
+                const nextDate = new Date(r.nextReminder);
                 
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
                 const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
                 
+                // 计算进度
+                const totalMs = nextDate - lastDate;
+                const elapsedMs = today - lastDate;
+                const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+                
                 // 更新时间状态
                 let timeClass = 'time-normal';
+                let statusText = `${diffDays}天后`;
+                
                 if (diffDays <= 0) {
                     timeClass = 'time-urgent';
+                    statusText = '今日到期';
                     dueTodayCount++;
+                    overdueCount++;
                 } else if (diffDays <= 1) {
                     timeClass = 'time-warning';
+                    statusText = '明天到期';
+                    pendingCount++;
+                } else if (diffDays <= 3) {
+                    timeClass = 'time-warning';
+                    statusText = `${diffDays}天后`;
                     pendingCount++;
                 }
                 
@@ -1196,7 +1403,7 @@
                                 <span class="meta-value">${lastUpdatedStr}</span>
                             </div>
                             <div class="meta-item">
-                                <span class="meta-label">下次更新</span>
+                                <span class="meta-label">下次提醒</span>
                                 <span class="meta-value ${timeClass}">${nextUpdateStr}</span>
                             </div>
                             <div class="meta-item">
@@ -1205,9 +1412,18 @@
                             </div>
                             <div class="meta-item">
                                 <span class="meta-label">剩余时间</span>
-                                <span class="meta-value ${timeClass}">
-                                    ${diffDays <= 0 ? '今日到期' : diffDays + '天后'}
-                                </span>
+                                <span class="meta-value ${timeClass}">${statusText}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-container">
+                            <div class="progress-label">
+                                <span>周期进度</span>
+                                <span>${Math.round(progress)}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${progress >= 90 ? 'danger' : progress >= 70 ? 'warning' : ''}" 
+                                     style="width: ${progress}%"></div>
                             </div>
                         </div>
                         
@@ -1215,11 +1431,11 @@
                             <button class="btn btn-outline" onclick="editReminder(${r.id})" style="padding: 8px 16px; font-size: 0.9rem;">
                                 <i class="fas fa-edit"></i> 编辑
                             </button>
-                            <button class="btn btn-outline" onclick="viewDetails(${r.id})" style="padding: 8px 16px; font-size: 0.9rem;">
-                                <i class="fas fa-info-circle"></i> 详情
+                            <button class="btn btn-outline" onclick="quickComplete(${r.id})" style="padding: 8px 16px; font-size: 0.9rem;">
+                                <i class="fas fa-check"></i> 设为今天
                             </button>
                             <button class="btn btn-outline" onclick="markAsComplete(${r.id})" style="padding: 8px 16px; font-size: 0.9rem;">
-                                <i class="fas fa-check"></i> 标记完成
+                                <i class="fas fa-calendar-check"></i> 标记完成
                             </button>
                         </div>
                     </div>
@@ -1232,6 +1448,7 @@
             totalElement.textContent = reminders.length;
             activeElement.innerHTML = `<i class="fas fa-check-circle"></i> ${reminders.length}个活动`;
             pendingElement.innerHTML = `<i class="fas fa-clock"></i> ${pendingCount}个即将到期`;
+            overdueElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${overdueCount}个已过期`;
             dueTodayElement.textContent = dueTodayCount;
             
             // 如果有今日到期的项目，显示警告
@@ -1252,8 +1469,11 @@
             } else if (date.toDateString() === yesterday.toDateString()) {
                 return '昨天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
             } else {
-                return date.toLocaleDateString('zh-CN') + ' ' + 
-                       date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                return date.toLocaleDateString('zh-CN', {
+                    month: 'short',
+                    day: 'numeric',
+                    weekday: 'short'
+                }) + ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
             }
         }
         
@@ -1355,6 +1575,15 @@
             if (saved) {
                 try {
                     reminders = JSON.parse(saved);
+                    // 确保每个提醒都有nextReminder字段
+                    reminders.forEach(reminder => {
+                        if (!reminder.nextReminder) {
+                            const lastDate = new Date(reminder.lastUpdated);
+                            const nextDate = new Date(lastDate);
+                            nextDate.setDate(nextDate.getDate() + reminder.days);
+                            reminder.nextReminder = nextDate.toISOString().split('T')[0];
+                        }
+                    });
                 } catch (e) {
                     reminders = [];
                 }
@@ -1403,6 +1632,7 @@
         window.editReminder = editReminder;
         window.viewDetails = viewDetails;
         window.markAsComplete = markAsComplete;
+        window.quickComplete = quickComplete;
         
         // 初始化GitHub自动保存
         initGitHubAutoSave();
@@ -1410,8 +1640,7 @@
     
     <!-- 引入自动保存模块 -->
     <script>
-        // 这里放置 auto-save.js 的内容
-        // 如果 auto-save.js 文件不存在，这里提供一个基础实现
+        // GitHub自动保存类
         class GitHubAutoSave {
             constructor(username, repoName, token) {
                 this.username = username;
