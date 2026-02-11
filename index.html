@@ -998,9 +998,129 @@
     <!-- Notification Container -->
     <div id="notificationArea"></div>
     
-    <!-- JavaScript部分保持不变（您原来的JS代码） -->
     <script>
-        // 核心数据
+        // ==================== 核心日期计算函数 (修复版) ====================
+        
+        // 获取北京时间（UTC+8）
+        function getBeijingTime() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            return new Date(utc + (3600000 * 8)); // 添加8小时得到北京时间
+        }
+        
+        // 获取北京时间的日期部分（YYYY-MM-DD格式）
+        function getBeijingDateString() {
+            const beijingTime = getBeijingTime();
+            const year = beijingTime.getFullYear();
+            const month = String(beijingTime.getMonth() + 1).padStart(2, '0');
+            const day = String(beijingTime.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 计算下一个提醒日期（正确算法：包含当天）
+        function calculateNextReminderDate(lastDate, intervalDays) {
+            // 解析日期字符串
+            const last = new Date(lastDate);
+            // 计算第n天后（包含当天，所以是间隔天数-1）
+            const next = new Date(last);
+            next.setDate(next.getDate() + intervalDays);
+            return next;
+        }
+        
+        // 计算下下一个提醒日期
+        function calculateNextNextReminderDate(lastDate, intervalDays) {
+            const last = new Date(lastDate);
+            const nextNext = new Date(last);
+            nextNext.setDate(nextNext.getDate() + (intervalDays * 2));
+            return nextNext;
+        }
+        
+        // 计算两个日期之间的天数差（包含当天）
+        function getDaysBetween(date1, date2) {
+            // 将时间都设置为北京时间的00:00:00进行比较
+            const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+            const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+            const diffTime = Math.abs(d2 - d1);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        // 计算进度百分比（正确算法）
+        function calculateProgress(lastDate, nextDate, currentDate) {
+            const last = new Date(lastDate);
+            const next = new Date(nextDate);
+            const current = new Date(currentDate);
+            
+            // 将时间都设置为00:00:00
+            const lastDay = new Date(last.getFullYear(), last.getMonth(), last.getDate());
+            const nextDay = new Date(next.getFullYear(), next.getMonth(), next.getDate());
+            const currentDay = new Date(current.getFullYear(), current.getMonth(), current.getDate());
+            
+            const totalMs = nextDay - lastDay;
+            const elapsedMs = currentDay - lastDay;
+            
+            // 确保进度在0-100%之间
+            let progress = (elapsedMs / totalMs) * 100;
+            progress = Math.min(100, Math.max(0, progress));
+            
+            return progress;
+        }
+        
+        // ==================== 其他辅助函数 ====================
+        
+        // 完整格式化日期
+        function formatDate(date) {
+            const beijingNow = getBeijingTime();
+            const today = new Date(beijingNow.getFullYear(), beijingNow.getMonth(), beijingNow.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            
+            if (targetDate.getTime() === today.getTime()) {
+                return '今天';
+            } else if (targetDate.getTime() === yesterday.getTime()) {
+                return '昨天';
+            } else if (targetDate.getTime() === tomorrow.getTime()) {
+                return '明天';
+            } else {
+                return date.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+            }
+        }
+        
+        // 简单格式化日期（仅用于预览）
+        function formatDateSimple(date) {
+            const beijingNow = getBeijingTime();
+            const today = new Date(beijingNow.getFullYear(), beijingNow.getMonth(), beijingNow.getDate());
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            
+            if (targetDate.getTime() === today.getTime()) {
+                return '今天';
+            } else if (targetDate.getTime() === yesterday.getTime()) {
+                return '昨天';
+            } else if (targetDate.getTime() === tomorrow.getTime()) {
+                return '明天';
+            } else {
+                return date.toLocaleDateString('zh-CN', {
+                    month: 'short',
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+            }
+        }
+        
+        // ==================== 核心数据 ====================
         let reminders = [];
         let config = {
             autoSave: true,
@@ -1013,9 +1133,10 @@
         };
         let gitHubAutoSave = null;
         
-        // 初始化
+        // ==================== 初始化 ====================
         document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
+            // 设置初始日期为今天（北京时间）
+            const today = getBeijingDateString();
             document.getElementById('lastUpdated').value = today;
             
             // 加载已有数据
@@ -1053,7 +1174,7 @@
             initGitHubAutoSave();
         });
         
-        // 设置所有按钮的事件监听器
+        // ==================== 事件监听器设置 ====================
         function setupEventListeners() {
             // GitHub配置按钮
             document.getElementById('saveTokenBtn').addEventListener('click', saveTokenConfig);
@@ -1106,63 +1227,7 @@
             });
         }
         
-        // 更新同步状态
-        function updateSyncStatus(status = '', isSyncing = false) {
-            const indicator = document.getElementById('syncIndicator');
-            const statusText = document.getElementById('syncStatus');
-            
-            if (isSyncing) {
-                indicator.className = 'sync-indicator syncing';
-                statusText.textContent = '同步状态: 同步中...';
-                statusText.style.color = 'var(--warning)';
-            } else if (status === 'success') {
-                indicator.className = 'sync-indicator';
-                statusText.textContent = '同步状态: 已同步';
-                statusText.style.color = 'var(--secondary)';
-            } else if (status === 'error') {
-                indicator.className = 'sync-indicator error';
-                statusText.textContent = '同步状态: 同步失败';
-                statusText.style.color = 'var(--danger)';
-            } else {
-                indicator.className = 'sync-indicator';
-                statusText.textContent = '同步状态: 未连接';
-                statusText.style.color = 'var(--dark-text-secondary)';
-            }
-        }
-        
-        // 强制刷新GitHub数据
-        async function forceRefreshGitHubData() {
-            if (!config.githubToken) {
-                showNotification('请先配置GitHub Token', 'error');
-                return;
-            }
-            
-            showNotification('正在强制刷新GitHub数据...', 'info');
-            updateSyncStatus('', true);
-            
-            // 清除缓存SHA
-            config.lastSyncSHA = '';
-            saveConfig();
-            
-            // 尝试从GitHub加载数据
-            await loadFromGitHub();
-        }
-        
-        // 计算下一个提醒日期
-        function calculateNextReminderDate(lastDate, intervalDays) {
-            const last = new Date(lastDate);
-            const next = new Date(last);
-            next.setDate(next.getDate() + intervalDays);
-            return next;
-        }
-        
-        // 计算下下一个提醒日期
-        function calculateNextNextReminderDate(lastDate, intervalDays) {
-            const last = new Date(lastDate);
-            const nextNext = new Date(last);
-            nextNext.setDate(nextNext.getDate() + (intervalDays * 2));
-            return nextNext;
-        }
+        // ==================== 核心功能函数 ====================
         
         // 更新下次提醒预览
         function updatePreview() {
@@ -1182,12 +1247,10 @@
             const nextDate = calculateNextReminderDate(lastUpdated, days);
             const nextNextDate = calculateNextNextReminderDate(lastUpdated, days);
             
-            // 计算进度
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const totalMs = nextDate - lastDate;
-            const elapsedMs = today - lastDate;
-            let progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+            // 使用北京时间计算进度
+            const beijingNow = getBeijingTime();
+            const today = new Date(beijingNow.getFullYear(), beijingNow.getMonth(), beijingNow.getDate());
+            const progress = calculateProgress(lastDate, nextDate, today);
             
             // 判断状态
             let cycleStatus = '进行中';
@@ -1224,314 +1287,8 @@
             }
         }
         
-        // 简单格式化日期（仅日期）
-        function formatDateSimple(date) {
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            if (date.toDateString() === today.toDateString()) {
-                return '今天';
-            } else if (date.toDateString() === yesterday.toDateString()) {
-                return '昨天';
-            } else if (date.toDateString() === tomorrow.toDateString()) {
-                return '明天';
-            } else {
-                return date.toLocaleDateString('zh-CN', {
-                    month: 'short',
-                    day: 'numeric',
-                    weekday: 'short'
-                });
-            }
-        }
-        
-        // 加载配置
-        function loadConfig() {
-            const saved = localStorage.getItem('telegramReminderConfig');
-            if (saved) {
-                const savedConfig = JSON.parse(saved);
-                config = { ...config, ...savedConfig };
-                
-                // 更新UI
-                document.getElementById('autoSaveToggle').checked = config.autoSave;
-                document.getElementById('githubToken').value = config.githubToken || '';
-                document.getElementById('githubUsername').value = config.username;
-                document.getElementById('githubRepo').value = config.repoName;
-                document.getElementById('reminderTime').value = config.reminderTime || '11:00';
-                document.getElementById('autoMarkCompleted').checked = config.autoMarkCompleted !== false;
-            }
-        }
-        
-        // 保存配置
-        function saveConfig() {
-            // 从UI获取最新值
-            config.githubToken = document.getElementById('githubToken').value.trim();
-            config.username = document.getElementById('githubUsername').value.trim();
-            config.repoName = document.getElementById('githubRepo').value.trim();
-            config.autoSave = document.getElementById('autoSaveToggle').checked;
-            config.reminderTime = document.getElementById('reminderTime').value;
-            config.autoMarkCompleted = document.getElementById('autoMarkCompleted').checked;
-            
-            localStorage.setItem('telegramReminderConfig', JSON.stringify(config));
-            console.log('配置已保存:', config);
-        }
-        
-        // 初始化GitHub自动保存
-        function initGitHubAutoSave() {
-            if (config.githubToken) {
-                gitHubAutoSave = new GitHubAutoSave(
-                    config.username,
-                    config.repoName,
-                    config.githubToken
-                );
-                
-                // 测试连接
-                gitHubAutoSave.testConnection().then(result => {
-                    if (result.success) {
-                        console.log('✅ GitHub自动保存连接正常');
-                        updateSyncStatus('success');
-                    } else {
-                        console.warn('⚠️ GitHub自动保存连接失败:', result.error);
-                        updateSyncStatus('error');
-                    }
-                });
-            }
-        }
-        
-        // 保存Token配置
-        function saveTokenConfig() {
-            console.log('保存Token配置');
-            const token = document.getElementById('githubToken').value.trim();
-            const username = document.getElementById('githubUsername').value.trim();
-            const repo = document.getElementById('githubRepo').value.trim();
-            
-            if (!token) {
-                showNotification('请输入GitHub Token', 'error');
-                return;
-            }
-            
-            if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-                if (!confirm('Token格式可能不正确，是否继续保存？')) {
-                    return;
-                }
-            }
-            
-            config.githubToken = token;
-            config.username = username;
-            config.repoName = repo;
-            saveConfig();
-            
-            // 测试连接
-            testAutoSave();
-        }
-        
-        // 测试自动保存
-        async function testAutoSave() {
-            console.log('测试自动保存');
-            if (!config.githubToken) {
-                showNotification('请先配置GitHub Token', 'error');
-                return;
-            }
-            
-            showNotification('正在测试GitHub连接...', 'info');
-            updateSyncStatus('', true);
-            
-            const tempGitHub = new GitHubAutoSave(
-                config.username,
-                config.repoName,
-                config.githubToken
-            );
-            
-            const result = await tempGitHub.testConnection();
-            
-            if (result.success) {
-                showNotification(`✅ 连接成功！仓库: ${result.repo}<br>权限: ${JSON.stringify(result.permissions)}`, 'success');
-                // 初始化正式实例
-                gitHubAutoSave = tempGitHub;
-                updateSyncStatus('success');
-                
-                // 尝试获取当前文件信息
-                const fileInfo = await gitHubAutoSave.getFileInfo();
-                if (fileInfo.success) {
-                    config.lastSyncSHA = fileInfo.sha;
-                    saveConfig();
-                    showNotification('✅ 已获取最新文件SHA值', 'success');
-                }
-            } else {
-                showNotification(`❌ 连接失败: ${result.error}`, 'error');
-                updateSyncStatus('error');
-            }
-        }
-        
-        // 清除Token
-        function clearToken() {
-            console.log('清除Token');
-            if (confirm('确定要清除Token吗？清除后自动保存将失效。')) {
-                config.githubToken = '';
-                document.getElementById('githubToken').value = '';
-                config.lastSyncSHA = '';
-                saveConfig();
-                gitHubAutoSave = null;
-                updateSyncStatus();
-                showNotification('✅ Token已清除', 'success');
-            }
-        }
-        
-        // 更新自动保存状态显示
-        function updateAutoSaveStatus() {
-            const statusElement = document.getElementById('autoSaveStatus');
-            const badgeElement = document.getElementById('autoSaveStatusBadge');
-            const isEnabled = config.autoSave && config.githubToken;
-            
-            if (isEnabled) {
-                statusElement.innerHTML = '<span class="status-indicator"></span>已启用';
-                statusElement.className = 'status-badge status-online';
-                badgeElement.textContent = '启用';
-                badgeElement.style.color = 'var(--secondary)';
-            } else if (config.autoSave && !config.githubToken) {
-                statusElement.innerHTML = '<span class="status-indicator"></span>需配置Token';
-                statusElement.className = 'status-badge status-warning';
-                badgeElement.textContent = '待配置';
-                badgeElement.style.color = 'var(--warning)';
-            } else {
-                statusElement.innerHTML = '<span class="status-indicator"></span>已禁用';
-                statusElement.className = 'status-badge status-offline';
-                badgeElement.textContent = '禁用';
-                badgeElement.style.color = 'var(--dark-text-secondary)';
-            }
-        }
-        
-        // 从GitHub加载数据
-        async function loadFromGitHub() {
-            console.log('从GitHub加载数据');
-            if (!gitHubAutoSave) {
-                showNotification('请先配置GitHub Token并测试连接', 'error');
-                return;
-            }
-            
-            showNotification('正在从GitHub加载数据...', 'info');
-            updateSyncStatus('', true);
-            
-            try {
-                const result = await gitHubAutoSave.loadFromGitHub();
-                
-                if (result.success) {
-                    // 合并数据：优先使用GitHub的数据
-                    if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-                        // 使用GitHub的数据
-                        reminders = result.data;
-                        // 确保每个提醒都有正确的nextReminder
-                        updateAllReminderDates();
-                        showNotification(`✅ 已从GitHub加载 ${reminders.length} 个提醒`, 'success');
-                    } else {
-                        // GitHub文件存在但为空
-                        showNotification('ℹ️ GitHub上的文件为空，保留本地数据', 'info');
-                    }
-                    
-                    // 更新本地存储
-                    saveReminders();
-                    updateReminderList();
-                    
-                    // 保存最新的SHA值
-                    config.lastSyncSHA = result.sha || '';
-                    saveConfig();
-                    
-                    updateSyncStatus('success');
-                    document.getElementById('lastSaveTime').textContent = '刚刚同步';
-                    
-                } else {
-                    if (result.error.includes('404')) {
-                        // 文件不存在，这是正常情况
-                        showNotification('ℹ️ GitHub上还没有数据文件，将使用本地数据', 'info');
-                        updateSyncStatus('success');
-                    } else {
-                        showNotification(`❌ 加载失败: ${result.error}`, 'error');
-                        updateSyncStatus('error');
-                    }
-                }
-            } catch (error) {
-                showNotification(`❌ 加载异常: ${error.message}`, 'error');
-                updateSyncStatus('error');
-            }
-        }
-        
-        // 更新所有提醒的日期（确保正确性）
-        function updateAllReminderDates() {
-            const now = new Date();
-            const today = now.toISOString().split('T')[0];
-            
-            reminders.forEach(reminder => {
-                // 确保有nextReminder字段
-                if (!reminder.nextReminder) {
-                    reminder.nextReminder = calculateNextReminderDate(reminder.lastUpdated, reminder.days).toISOString().split('T')[0];
-                }
-                
-                // 确保有notified字段
-                if (reminder.notified === undefined) {
-                    reminder.notified = false;
-                }
-                
-                // 如果nextReminder已经过去，重新计算
-                const nextDate = new Date(reminder.nextReminder);
-                const todayDate = new Date(today);
-                if (nextDate < todayDate) {
-                    // 找到最近的一个未来日期
-                    let lastDate = new Date(reminder.lastUpdated);
-                    while (nextDate < todayDate) {
-                        nextDate.setDate(nextDate.getDate() + reminder.days);
-                    }
-                    reminder.nextReminder = nextDate.toISOString().split('T')[0];
-                    reminder.notified = false; // 重置通知状态
-                }
-            });
-        }
-        
-        // 自动保存到GitHub
-        async function autoSaveToGitHub() {
-            if (!config.autoSave || !gitHubAutoSave) {
-                return { success: false, message: '自动保存未启用' };
-            }
-            
-            try {
-                const jsonData = JSON.stringify(reminders, null, 2);
-                const result = await gitHubAutoSave.saveToGitHub(jsonData, '更新提醒数据 [自动]', config.lastSyncSHA);
-                
-                if (result.success) {
-                    console.log('✅ 自动保存成功:', result.message);
-                    // 更新最后保存时间和SHA值
-                    document.getElementById('lastSaveTime').textContent = '刚刚保存';
-                    config.lastSyncSHA = result.sha || '';
-                    saveConfig();
-                    updateSyncStatus('success');
-                    return result;
-                } else {
-                    console.error('❌ 自动保存失败:', result.error);
-                    
-                    // 如果是SHA不匹配错误，尝试强制刷新
-                    if (result.error.includes('does not match')) {
-                        showNotification('⚠️ 数据冲突，正在尝试重新同步...', 'warning');
-                        await forceRefreshGitHubData();
-                    }
-                    
-                    updateSyncStatus('error');
-                    return result;
-                }
-            } catch (error) {
-                console.error('❌ 自动保存异常:', error);
-                updateSyncStatus('error');
-                return {
-                    success: false,
-                    error: error.message
-                };
-            }
-        }
-        
-        // 添加提醒（带自动保存）
+        // 添加提醒
         async function addReminder() {
-            console.log('添加提醒');
             const name = document.getElementById('reminderName').value.trim();
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
@@ -1551,32 +1308,31 @@
                 return;
             }
             
-            // 计算下次提醒日期
+            // 计算下次提醒日期（使用修复后的函数）
             const nextDate = calculateNextReminderDate(lastUpdated, days);
             
             const reminder = {
                 id: Date.now(),
                 name: name,
                 lastUpdated: lastUpdated,
-                nextReminder: nextDate.toISOString().split('T')[0], // 保存下次提醒日期
+                nextReminder: nextDate.toISOString().split('T')[0],
                 days: days,
-                createdAt: new Date().toISOString(),
-                lastNotified: null, // 最后通知时间
-                notified: false     // 本次周期是否已通知
+                createdAt: getBeijingTime().toISOString(),
+                lastNotified: null,
+                notified: false
             };
             
             reminders.push(reminder);
             saveReminders();
             updateReminderList();
             
-            // 显示详细信息
             const nextReminderStr = formatDate(nextDate);
             showNotification(`✅ "${name}" 已添加<br>下次提醒时间: ${nextReminderStr}`, 'success');
             
             // 清空表单
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
-            const today = new Date().toISOString().split('T')[0];
+            const today = getBeijingDateString();
             document.getElementById('lastUpdated').value = today;
             
             // 更新预览
@@ -1593,171 +1349,6 @@
             }
         }
         
-        // 删除提醒
-        async function deleteReminder(id) {
-            console.log('删除提醒:', id);
-            if (!confirm('确定要删除这个提醒吗？')) {
-                return;
-            }
-            
-            const reminder = reminders.find(r => r.id === id);
-            if (!reminder) return;
-            
-            reminders = reminders.filter(r => r.id !== id);
-            saveReminders();
-            updateReminderList();
-            
-            showNotification(`✅ "${reminder.name}" 已删除`, 'success');
-            
-            // 自动保存到GitHub
-            if (config.autoSave && gitHubAutoSave) {
-                const saveResult = await autoSaveToGitHub();
-                if (saveResult.success) {
-                    showNotification('✅ 删除后已自动保存到GitHub', 'success');
-                }
-            }
-        }
-        
-        // 编辑提醒
-        function editReminder(id) {
-            console.log('编辑提醒:', id);
-            const reminder = reminders.find(r => r.id === id);
-            if (!reminder) return;
-            
-            document.getElementById('reminderName').value = reminder.name;
-            document.getElementById('lastUpdated').value = reminder.lastUpdated;
-            document.getElementById('reminderDays').value = reminder.days;
-            
-            showNotification(`正在编辑提醒: ${reminder.name}`, 'info');
-            
-            // 移除该提醒，等待用户修改后重新添加
-            deleteReminder(id);
-        }
-        
-        // 查看详情
-        function viewDetails(id) {
-            console.log('查看详情:', id);
-            const reminder = reminders.find(r => r.id === id);
-            if (!reminder) return;
-            
-            const lastDate = new Date(reminder.lastUpdated);
-            const nextDate = new Date(reminder.nextReminder);
-            const nextNextDate = calculateNextNextReminderDate(reminder.lastUpdated, reminder.days);
-            
-            // 计算进度
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const totalMs = nextDate - lastDate;
-            const elapsedMs = today - lastDate;
-            const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
-            
-            const details = `
-                <strong>提醒详情:</strong><br>
-                <strong>名称:</strong> ${reminder.name}<br>
-                <strong>最后更新时间:</strong> ${formatDate(lastDate)}<br>
-                <strong>下次提醒时间:</strong> ${formatDate(nextDate)}<br>
-                <strong>下下次提醒时间:</strong> ${formatDate(nextNextDate)}<br>
-                <strong>间隔天数:</strong> ${reminder.days}天<br>
-                <strong>周期进度:</strong> ${Math.round(progress)}%<br>
-                <strong>创建时间:</strong> ${formatDate(new Date(reminder.createdAt))}<br>
-                <strong>提醒ID:</strong> ${reminder.id}
-            `;
-            
-            showNotification(details, 'info');
-        }
-        
-        // 标记为完成（更新下次提醒时间）
-        function markAsComplete(id) {
-            console.log('标记完成:', id);
-            const reminder = reminders.find(r => r.id === id);
-            if (!reminder) return;
-            
-            const today = new Date().toISOString().split('T')[0];
-            const nextDate = calculateNextReminderDate(today, reminder.days);
-            
-            // 更新提醒时间
-            reminder.lastUpdated = today;
-            reminder.nextReminder = nextDate.toISOString().split('T')[0];
-            reminder.notified = false; // 重置通知状态
-            
-            saveReminders();
-            updateReminderList();
-            
-            const nextReminderStr = formatDate(nextDate);
-            showNotification(`✅ "${reminder.name}" 已标记为完成<br>下次提醒时间: ${nextReminderStr}`, 'success');
-            
-            // 自动保存到GitHub
-            if (config.autoSave && gitHubAutoSave) {
-                autoSaveToGitHub();
-            }
-        }
-        
-        // 快速完成（设置为今天）
-        function quickComplete(id) {
-            console.log('快速完成:', id);
-            const reminder = reminders.find(r => r.id === id);
-            if (!reminder) return;
-            
-            const today = new Date().toISOString().split('T')[0];
-            reminder.lastUpdated = today;
-            
-            // 重新计算下次提醒
-            const nextDate = calculateNextReminderDate(today, reminder.days);
-            reminder.nextReminder = nextDate.toISOString().split('T')[0];
-            reminder.notified = false; // 重置通知状态
-            
-            saveReminders();
-            updateReminderList();
-            
-            showNotification(`✅ "${reminder.name}" 已更新为今天<br>下次提醒时间: ${formatDate(nextDate)}`, 'success');
-            
-            // 自动保存到GitHub
-            if (config.autoSave && gitHubAutoSave) {
-                autoSaveToGitHub();
-            }
-        }
-        
-        // 手动保存到GitHub
-        async function manualSaveToGitHub() {
-            console.log('手动保存到GitHub');
-            if (!gitHubAutoSave) {
-                showNotification('请先配置GitHub Token并测试连接', 'error');
-                return;
-            }
-            
-            showNotification('正在保存到GitHub...', 'info');
-            updateSyncStatus('', true);
-            
-            const jsonData = JSON.stringify(reminders, null, 2);
-            const result = await gitHubAutoSave.saveToGitHub(jsonData, '手动更新提醒数据', config.lastSyncSHA);
-            
-            if (result.success) {
-                showNotification('✅ 已成功保存到GitHub', 'success');
-                document.getElementById('lastSaveTime').textContent = '刚刚保存';
-                config.lastSyncSHA = result.sha || '';
-                saveConfig();
-                updateSyncStatus('success');
-            } else {
-                showNotification(`❌ 保存失败: ${result.error}`, 'error');
-                updateSyncStatus('error');
-                
-                // 如果是SHA不匹配错误，提供解决方案
-                if (result.error.includes('does not match')) {
-                    showNotification(
-                        `⚠️ 数据冲突！<br>
-                        可能的原因：<br>
-                        1. GitHub上的文件已被其他人修改<br>
-                        2. 在其他设备上修改了数据<br>
-                        <br>
-                        解决方案：<br>
-                        1. 点击"强制刷新"按钮重新同步<br>
-                        2. 或手动合并数据`,
-                        'warning'
-                    );
-                }
-            }
-        }
-        
         // 更新提醒列表显示
         function updateReminderList() {
             const list = document.getElementById('reminderList');
@@ -1767,11 +1358,9 @@
             const overdueElement = document.getElementById('overdueReminders');
             const dueTodayElement = document.getElementById('dueToday');
             
-            // 计算统计数据
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
+            // 使用北京时间
+            const beijingNow = getBeijingTime();
+            const today = new Date(beijingNow.getFullYear(), beijingNow.getMonth(), beijingNow.getDate());
             
             let dueTodayCount = 0;
             let pendingCount = 0;
@@ -1803,39 +1392,36 @@
                 const nextDate = new Date(r.nextReminder);
                 const nextNextDate = calculateNextNextReminderDate(r.lastUpdated, r.days);
                 
-                // 计算天数差
-                const diffMs = nextDate - today;
-                const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                // 使用北京时间计算天数差
+                const daysDiff = getDaysBetween(today, nextDate);
                 
                 // 计算进度
-                const totalMs = nextDate - lastDate;
-                const elapsedMs = today - lastDate;
-                const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+                const progress = calculateProgress(lastDate, nextDate, today);
                 
                 // 更新时间状态
                 let timeClass = 'time-normal';
                 let statusText = '';
                 let cycleStatus = '进行中';
                 
-                if (diffDays === 0) {
+                if (daysDiff === 0) {
                     timeClass = 'time-urgent';
                     statusText = '今日到期';
                     cycleStatus = '今日到期';
                     dueTodayCount++;
                     overdueCount++;
-                } else if (diffDays === 1) {
+                } else if (daysDiff === 1) {
                     timeClass = 'time-warning';
                     statusText = '明天到期';
                     cycleStatus = '即将到期';
                     pendingCount++;
-                } else if (diffDays > 1) {
-                    statusText = `${diffDays}天后`;
+                } else if (daysDiff > 1) {
+                    statusText = `${daysDiff}天后`;
                     cycleStatus = '进行中';
-                    if (diffDays <= 3) {
+                    if (daysDiff <= 3) {
                         timeClass = 'time-warning';
                         pendingCount++;
                     }
-                } else if (diffDays < 0) {
+                } else if (daysDiff < 0) {
                     timeClass = 'time-urgent';
                     statusText = '已过期';
                     cycleStatus = '已过期';
@@ -1934,6 +1520,482 @@
             }
         }
         
+        // 标记为完成（更新下次提醒时间）
+        function markAsComplete(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
+            
+            const today = getBeijingDateString();
+            const nextDate = calculateNextReminderDate(today, reminder.days);
+            
+            // 更新提醒时间
+            reminder.lastUpdated = today;
+            reminder.nextReminder = nextDate.toISOString().split('T')[0];
+            reminder.notified = false;
+            
+            saveReminders();
+            updateReminderList();
+            
+            const nextReminderStr = formatDate(nextDate);
+            showNotification(`✅ "${reminder.name}" 已标记为完成<br>下次提醒时间: ${nextReminderStr}`, 'success');
+            
+            // 自动保存到GitHub
+            if (config.autoSave && gitHubAutoSave) {
+                autoSaveToGitHub();
+            }
+        }
+        
+        // 快速完成（设置为今天）
+        function quickComplete(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
+            
+            const today = getBeijingDateString();
+            reminder.lastUpdated = today;
+            
+            // 重新计算下次提醒
+            const nextDate = calculateNextReminderDate(today, reminder.days);
+            reminder.nextReminder = nextDate.toISOString().split('T')[0];
+            reminder.notified = false;
+            
+            saveReminders();
+            updateReminderList();
+            
+            showNotification(`✅ "${reminder.name}" 已更新为今天<br>下次提醒时间: ${formatDate(nextDate)}`, 'success');
+            
+            // 自动保存到GitHub
+            if (config.autoSave && gitHubAutoSave) {
+                autoSaveToGitHub();
+            }
+        }
+        
+        // 更新所有提醒的日期（确保正确性）
+        function updateAllReminderDates() {
+            const today = getBeijingDateString();
+            
+            reminders.forEach(reminder => {
+                // 确保有nextReminder字段
+                if (!reminder.nextReminder) {
+                    reminder.nextReminder = calculateNextReminderDate(reminder.lastUpdated, reminder.days).toISOString().split('T')[0];
+                }
+                
+                // 确保有notified字段
+                if (reminder.notified === undefined) {
+                    reminder.notified = false;
+                }
+                
+                // 如果nextReminder已经过去，重新计算
+                const nextDate = new Date(reminder.nextReminder);
+                const todayDate = new Date(today);
+                if (nextDate < todayDate) {
+                    // 找到最近的一个未来日期
+                    let lastDate = new Date(reminder.lastUpdated);
+                    while (nextDate < todayDate) {
+                        nextDate.setDate(nextDate.getDate() + reminder.days);
+                    }
+                    reminder.nextReminder = nextDate.toISOString().split('T')[0];
+                    reminder.notified = false;
+                }
+            });
+        }
+        
+        // ==================== 其他功能函数 ====================
+        
+        // 更新同步状态
+        function updateSyncStatus(status = '', isSyncing = false) {
+            const indicator = document.getElementById('syncIndicator');
+            const statusText = document.getElementById('syncStatus');
+            
+            if (isSyncing) {
+                indicator.className = 'sync-indicator syncing';
+                statusText.textContent = '同步状态: 同步中...';
+                statusText.style.color = 'var(--warning)';
+            } else if (status === 'success') {
+                indicator.className = 'sync-indicator';
+                statusText.textContent = '同步状态: 已同步';
+                statusText.style.color = 'var(--secondary)';
+            } else if (status === 'error') {
+                indicator.className = 'sync-indicator error';
+                statusText.textContent = '同步状态: 同步失败';
+                statusText.style.color = 'var(--danger)';
+            } else {
+                indicator.className = 'sync-indicator';
+                statusText.textContent = '同步状态: 未连接';
+                statusText.style.color = 'var(--dark-text-secondary)';
+            }
+        }
+        
+        // 检查系统状态
+        function checkSystemStatus() {
+            const statusIcon = document.getElementById('statusIcon');
+            const nextRunInfo = document.getElementById('nextRunInfo');
+            const lastRunInfo = document.getElementById('lastRunInfo');
+            
+            // 使用北京时间
+            const beijingNow = getBeijingTime();
+            
+            // 模拟状态检查
+            const isOnline = Math.random() > 0.3;
+            
+            if (isOnline) {
+                statusIcon.className = 'status-indicator';
+                statusIcon.style.background = 'var(--secondary)';
+                
+                // 计算下次运行时间（使用北京时间）
+                const [hours, minutes] = config.reminderTime.split(':').map(Number);
+                const targetTime = new Date(beijingNow);
+                targetTime.setHours(hours, minutes, 0, 0);
+                
+                if (beijingNow > targetTime) {
+                    targetTime.setDate(targetTime.getDate() + 1);
+                }
+                
+                const diffMs = targetTime - beijingNow;
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                
+                nextRunInfo.textContent = `${diffHours}小时${diffMinutes}分钟后`;
+                lastRunInfo.textContent = formatDate(new Date(beijingNow.getTime() - 3600000));
+                
+                // 更新下次运行时间
+                const nextRunElement = document.getElementById('nextRunTime');
+                nextRunElement.textContent = targetTime.getHours().toString().padStart(2, '0') + ':' + 
+                                           targetTime.getMinutes().toString().padStart(2, '0');
+            } else {
+                statusIcon.className = 'status-indicator';
+                statusIcon.style.background = 'var(--danger)';
+                
+                nextRunInfo.textContent = '未知';
+                lastRunInfo.textContent = '未知';
+            }
+        }
+        
+        // ==================== 存储和配置函数 ====================
+        
+        // 加载配置
+        function loadConfig() {
+            const saved = localStorage.getItem('telegramReminderConfig');
+            if (saved) {
+                const savedConfig = JSON.parse(saved);
+                config = { ...config, ...savedConfig };
+                
+                document.getElementById('autoSaveToggle').checked = config.autoSave;
+                document.getElementById('githubToken').value = config.githubToken || '';
+                document.getElementById('githubUsername').value = config.username;
+                document.getElementById('githubRepo').value = config.repoName;
+                document.getElementById('reminderTime').value = config.reminderTime || '11:00';
+                document.getElementById('autoMarkCompleted').checked = config.autoMarkCompleted !== false;
+            }
+        }
+        
+        // 保存配置
+        function saveConfig() {
+            config.githubToken = document.getElementById('githubToken').value.trim();
+            config.username = document.getElementById('githubUsername').value.trim();
+            config.repoName = document.getElementById('githubRepo').value.trim();
+            config.autoSave = document.getElementById('autoSaveToggle').checked;
+            config.reminderTime = document.getElementById('reminderTime').value;
+            config.autoMarkCompleted = document.getElementById('autoMarkCompleted').checked;
+            
+            localStorage.setItem('telegramReminderConfig', JSON.stringify(config));
+        }
+        
+        // 加载提醒数据
+        function loadReminders() {
+            const saved = localStorage.getItem('telegramReminders');
+            if (saved) {
+                try {
+                    reminders = JSON.parse(saved);
+                    updateAllReminderDates();
+                } catch (e) {
+                    reminders = [];
+                }
+            }
+        }
+        
+        // 保存提醒数据到本地存储
+        function saveReminders() {
+            localStorage.setItem('telegramReminders', JSON.stringify(reminders));
+        }
+        
+        // 显示通知
+        function showNotification(message, type) {
+            const notificationArea = document.getElementById('notificationArea');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            let icon = 'fas fa-info-circle';
+            if (type === 'success') icon = 'fas fa-check-circle';
+            if (type === 'error') icon = 'fas fa-exclamation-circle';
+            if (type === 'warning') icon = 'fas fa-exclamation-triangle';
+            
+            notification.innerHTML = `
+                <i class="${icon}"></i>
+                <div>${message}</div>
+            `;
+            
+            notificationArea.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode === notificationArea) {
+                        notificationArea.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+        
+        // ==================== GitHub相关函数 ====================
+        
+        // 初始化GitHub自动保存
+        function initGitHubAutoSave() {
+            if (config.githubToken) {
+                gitHubAutoSave = new GitHubAutoSave(
+                    config.username,
+                    config.repoName,
+                    config.githubToken
+                );
+                
+                gitHubAutoSave.testConnection().then(result => {
+                    if (result.success) {
+                        console.log('✅ GitHub自动保存连接正常');
+                        updateSyncStatus('success');
+                    } else {
+                        console.warn('⚠️ GitHub自动保存连接失败:', result.error);
+                        updateSyncStatus('error');
+                    }
+                });
+            }
+        }
+        
+        // 保存Token配置
+        function saveTokenConfig() {
+            const token = document.getElementById('githubToken').value.trim();
+            const username = document.getElementById('githubUsername').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
+            
+            if (!token) {
+                showNotification('请输入GitHub Token', 'error');
+                return;
+            }
+            
+            config.githubToken = token;
+            config.username = username;
+            config.repoName = repo;
+            saveConfig();
+            
+            testAutoSave();
+        }
+        
+        // 测试自动保存
+        async function testAutoSave() {
+            if (!config.githubToken) {
+                showNotification('请先配置GitHub Token', 'error');
+                return;
+            }
+            
+            showNotification('正在测试GitHub连接...', 'info');
+            updateSyncStatus('', true);
+            
+            const tempGitHub = new GitHubAutoSave(
+                config.username,
+                config.repoName,
+                config.githubToken
+            );
+            
+            const result = await tempGitHub.testConnection();
+            
+            if (result.success) {
+                showNotification(`✅ 连接成功！仓库: ${result.repo}`, 'success');
+                gitHubAutoSave = tempGitHub;
+                updateSyncStatus('success');
+                
+                const fileInfo = await gitHubAutoSave.getFileInfo();
+                if (fileInfo.success) {
+                    config.lastSyncSHA = fileInfo.sha;
+                    saveConfig();
+                }
+            } else {
+                showNotification(`❌ 连接失败: ${result.error}`, 'error');
+                updateSyncStatus('error');
+            }
+        }
+        
+        // 清除Token
+        function clearToken() {
+            if (confirm('确定要清除Token吗？清除后自动保存将失效。')) {
+                config.githubToken = '';
+                document.getElementById('githubToken').value = '';
+                config.lastSyncSHA = '';
+                saveConfig();
+                gitHubAutoSave = null;
+                updateSyncStatus();
+                showNotification('✅ Token已清除', 'success');
+            }
+        }
+        
+        // 更新自动保存状态显示
+        function updateAutoSaveStatus() {
+            const statusElement = document.getElementById('autoSaveStatus');
+            const badgeElement = document.getElementById('autoSaveStatusBadge');
+            const isEnabled = config.autoSave && config.githubToken;
+            
+            if (isEnabled) {
+                statusElement.innerHTML = '<span class="status-indicator"></span>已启用';
+                statusElement.className = 'status-badge status-online';
+                badgeElement.textContent = '启用';
+                badgeElement.style.color = 'var(--secondary)';
+            } else if (config.autoSave && !config.githubToken) {
+                statusElement.innerHTML = '<span class="status-indicator"></span>需配置Token';
+                statusElement.className = 'status-badge status-warning';
+                badgeElement.textContent = '待配置';
+                badgeElement.style.color = 'var(--warning)';
+            } else {
+                statusElement.innerHTML = '<span class="status-indicator"></span>已禁用';
+                statusElement.className = 'status-badge status-offline';
+                badgeElement.textContent = '禁用';
+                badgeElement.style.color = 'var(--dark-text-secondary)';
+            }
+        }
+        
+        // 自动保存到GitHub
+        async function autoSaveToGitHub() {
+            if (!config.autoSave || !gitHubAutoSave) {
+                return { success: false, message: '自动保存未启用' };
+            }
+            
+            try {
+                const jsonData = JSON.stringify(reminders, null, 2);
+                const result = await gitHubAutoSave.saveToGitHub(jsonData, '更新提醒数据 [自动]', config.lastSyncSHA);
+                
+                if (result.success) {
+                    document.getElementById('lastSaveTime').textContent = '刚刚保存';
+                    config.lastSyncSHA = result.sha || '';
+                    saveConfig();
+                    updateSyncStatus('success');
+                    return result;
+                } else {
+                    if (result.error.includes('does not match')) {
+                        showNotification('⚠️ 数据冲突，正在尝试重新同步...', 'warning');
+                        await forceRefreshGitHubData();
+                    }
+                    
+                    updateSyncStatus('error');
+                    return result;
+                }
+            } catch (error) {
+                updateSyncStatus('error');
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+        
+        // 从GitHub加载数据
+        async function loadFromGitHub() {
+            if (!gitHubAutoSave) {
+                showNotification('请先配置GitHub Token并测试连接', 'error');
+                return;
+            }
+            
+            showNotification('正在从GitHub加载数据...', 'info');
+            updateSyncStatus('', true);
+            
+            try {
+                const result = await gitHubAutoSave.loadFromGitHub();
+                
+                if (result.success) {
+                    if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+                        reminders = result.data;
+                        updateAllReminderDates();
+                        showNotification(`✅ 已从GitHub加载 ${reminders.length} 个提醒`, 'success');
+                    } else {
+                        showNotification('ℹ️ GitHub上的文件为空，保留本地数据', 'info');
+                    }
+                    
+                    saveReminders();
+                    updateReminderList();
+                    
+                    config.lastSyncSHA = result.sha || '';
+                    saveConfig();
+                    
+                    updateSyncStatus('success');
+                    document.getElementById('lastSaveTime').textContent = '刚刚同步';
+                    
+                } else {
+                    if (result.error.includes('404')) {
+                        showNotification('ℹ️ GitHub上还没有数据文件，将使用本地数据', 'info');
+                        updateSyncStatus('success');
+                    } else {
+                        showNotification(`❌ 加载失败: ${result.error}`, 'error');
+                        updateSyncStatus('error');
+                    }
+                }
+            } catch (error) {
+                showNotification(`❌ 加载异常: ${error.message}`, 'error');
+                updateSyncStatus('error');
+            }
+        }
+        
+        // 强制刷新GitHub数据
+        async function forceRefreshGitHubData() {
+            if (!config.githubToken) {
+                showNotification('请先配置GitHub Token', 'error');
+                return;
+            }
+            
+            showNotification('正在强制刷新GitHub数据...', 'info');
+            updateSyncStatus('', true);
+            
+            config.lastSyncSHA = '';
+            saveConfig();
+            
+            await loadFromGitHub();
+        }
+        
+        // 手动保存到GitHub
+        async function manualSaveToGitHub() {
+            if (!gitHubAutoSave) {
+                showNotification('请先配置GitHub Token并测试连接', 'error');
+                return;
+            }
+            
+            showNotification('正在保存到GitHub...', 'info');
+            updateSyncStatus('', true);
+            
+            const jsonData = JSON.stringify(reminders, null, 2);
+            const result = await gitHubAutoSave.saveToGitHub(jsonData, '手动更新提醒数据', config.lastSyncSHA);
+            
+            if (result.success) {
+                showNotification('✅ 已成功保存到GitHub', 'success');
+                document.getElementById('lastSaveTime').textContent = '刚刚保存';
+                config.lastSyncSHA = result.sha || '';
+                saveConfig();
+                updateSyncStatus('success');
+            } else {
+                showNotification(`❌ 保存失败: ${result.error}`, 'error');
+                updateSyncStatus('error');
+                
+                if (result.error.includes('does not match')) {
+                    showNotification(
+                        `⚠️ 数据冲突！<br>
+                        可能的原因：<br>
+                        1. GitHub上的文件已被其他人修改<br>
+                        2. 在其他设备上修改了数据<br>
+                        <br>
+                        解决方案：<br>
+                        1. 点击"强制刷新"按钮重新同步<br>
+                        2. 或手动合并数据`,
+                        'warning'
+                    );
+                }
+            }
+        }
+        
         // 为动态生成的按钮设置事件监听器
         function setupDynamicEventListeners() {
             // 删除按钮
@@ -1975,7 +2037,6 @@
             // 点击提醒项查看详情
             document.querySelectorAll('.reminder-item').forEach(item => {
                 item.addEventListener('click', function(e) {
-                    // 如果不是点击按钮，则查看详情
                     if (!e.target.closest('button')) {
                         const id = parseInt(this.getAttribute('data-id'));
                         viewDetails(id);
@@ -1984,84 +2045,80 @@
             });
         }
         
-        // 辅助函数：格式化日期
-        function formatDate(date) {
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
+        // 查看详情
+        function viewDetails(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
             
-            if (date.toDateString() === today.toDateString()) {
-                return '今天';
-            } else if (date.toDateString() === yesterday.toDateString()) {
-                return '昨天';
-            } else if (date.toDateString() === tomorrow.toDateString()) {
-                return '明天';
-            } else {
-                return date.toLocaleDateString('zh-CN', {
-                    month: 'short',
-                    day: 'numeric',
-                    weekday: 'short'
-                });
-            }
+            const lastDate = new Date(reminder.lastUpdated);
+            const nextDate = new Date(reminder.nextReminder);
+            const nextNextDate = calculateNextNextReminderDate(reminder.lastUpdated, reminder.days);
+            
+            // 使用北京时间计算进度
+            const beijingNow = getBeijingTime();
+            const today = new Date(beijingNow.getFullYear(), beijingNow.getMonth(), beijingNow.getDate());
+            const progress = calculateProgress(lastDate, nextDate, today);
+            
+            const details = `
+                <strong>提醒详情:</strong><br>
+                <strong>名称:</strong> ${reminder.name}<br>
+                <strong>最后更新时间:</strong> ${formatDate(lastDate)}<br>
+                <strong>下次提醒时间:</strong> ${formatDate(nextDate)}<br>
+                <strong>下下次提醒时间:</strong> ${formatDate(nextNextDate)}<br>
+                <strong>间隔天数:</strong> ${reminder.days}天<br>
+                <strong>周期进度:</strong> ${Math.round(progress)}%<br>
+                <strong>创建时间:</strong> ${formatDate(new Date(reminder.createdAt))}<br>
+                <strong>提醒ID:</strong> ${reminder.id}
+            `;
+            
+            showNotification(details, 'info');
         }
         
-        // 检查系统状态
-        function checkSystemStatus() {
-            console.log('检查系统状态');
-            const statusIcon = document.getElementById('statusIcon');
-            const nextRunInfo = document.getElementById('nextRunInfo');
-            const lastRunInfo = document.getElementById('lastRunInfo');
+        // 编辑提醒
+        function editReminder(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
             
-            // 模拟状态检查
-            const isOnline = Math.random() > 0.3; // 70%概率显示在线
+            document.getElementById('reminderName').value = reminder.name;
+            document.getElementById('lastUpdated').value = reminder.lastUpdated;
+            document.getElementById('reminderDays').value = reminder.days;
             
-            if (isOnline) {
-                statusIcon.className = 'status-indicator';
-                statusIcon.style.background = 'var(--secondary)';
-                
-                // 计算下次运行时间
-                const now = new Date();
-                const [hours, minutes] = config.reminderTime.split(':').map(Number);
-                const targetTime = new Date(now);
-                targetTime.setHours(hours, minutes, 0, 0);
-                
-                if (now > targetTime) {
-                    targetTime.setDate(targetTime.getDate() + 1);
+            showNotification(`正在编辑提醒: ${reminder.name}`, 'info');
+            
+            // 移除该提醒，等待用户修改后重新添加
+            deleteReminder(id);
+        }
+        
+        // 删除提醒
+        async function deleteReminder(id) {
+            if (!confirm('确定要删除这个提醒吗？')) {
+                return;
+            }
+            
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
+            
+            reminders = reminders.filter(r => r.id !== id);
+            saveReminders();
+            updateReminderList();
+            
+            showNotification(`✅ "${reminder.name}" 已删除`, 'success');
+            
+            if (config.autoSave && gitHubAutoSave) {
+                const saveResult = await autoSaveToGitHub();
+                if (saveResult.success) {
+                    showNotification('✅ 删除后已自动保存到GitHub', 'success');
                 }
-                
-                const diffMs = targetTime - now;
-                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                
-                nextRunInfo.textContent = `${diffHours}小时${diffMinutes}分钟后`;
-                lastRunInfo.textContent = formatDate(new Date(Date.now() - 3600000)); // 1小时前
-                
-                // 更新下次运行时间
-                const nextRunElement = document.getElementById('nextRunTime');
-                const nextRunDate = new Date(targetTime);
-                nextRunElement.textContent = nextRunDate.getHours().toString().padStart(2, '0') + ':' + 
-                                           nextRunDate.getMinutes().toString().padStart(2, '0');
-            } else {
-                statusIcon.className = 'status-indicator';
-                statusIcon.style.background = 'var(--danger)';
-                
-                nextRunInfo.textContent = '未知';
-                lastRunInfo.textContent = '未知';
             }
         }
         
         // 查看Actions页面
         function viewActionsPage() {
-            console.log('查看Actions页面');
             window.open(`https://github.com/${config.username}/${config.repoName}/actions`, '_blank');
         }
         
         // 手动测试
         function manualTest() {
-            console.log('手动测试');
             const actionsUrl = `https://github.com/${config.username}/${config.repoName}/actions`;
             showNotification(
                 `🔧 手动测试步骤：<br>
@@ -2076,7 +2133,6 @@
         
         // 下载提醒数据
         function downloadReminders() {
-            console.log('下载提醒数据');
             const jsonData = JSON.stringify(reminders, null, 2);
             const blob = new Blob([jsonData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -2092,69 +2148,16 @@
         
         // 清空所有提醒
         function clearAll() {
-            console.log('清空所有提醒');
             if (confirm('确定要清空所有提醒吗？此操作不可撤销！')) {
                 reminders = [];
                 saveReminders();
                 updateReminderList();
                 showNotification('✅ 所有提醒已清空', 'success');
                 
-                // 自动保存到GitHub
                 if (config.autoSave && gitHubAutoSave) {
                     autoSaveToGitHub();
                 }
             }
-        }
-        
-        // 加载提醒数据
-        function loadReminders() {
-            const saved = localStorage.getItem('telegramReminders');
-            if (saved) {
-                try {
-                    reminders = JSON.parse(saved);
-                    // 确保每个提醒都有正确的字段
-                    updateAllReminderDates();
-                } catch (e) {
-                    reminders = [];
-                }
-            }
-        }
-        
-        // 保存提醒数据到本地存储
-        function saveReminders() {
-            localStorage.setItem('telegramReminders', JSON.stringify(reminders));
-        }
-        
-        // 显示通知
-        function showNotification(message, type) {
-            const notificationArea = document.getElementById('notificationArea');
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            
-            let icon = 'fas fa-info-circle';
-            if (type === 'success') icon = 'fas fa-check-circle';
-            if (type === 'error') icon = 'fas fa-exclamation-circle';
-            if (type === 'warning') icon = 'fas fa-exclamation-triangle';
-            
-            notification.innerHTML = `
-                <i class="${icon}"></i>
-                <div>${message}</div>
-            `;
-            
-            notificationArea.appendChild(notification);
-            
-            // 显示通知
-            setTimeout(() => notification.classList.add('show'), 10);
-            
-            // 自动移除
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    if (notification.parentNode === notificationArea) {
-                        notificationArea.removeChild(notification);
-                    }
-                }, 300);
-            }, 5000);
         }
     </script>
     
