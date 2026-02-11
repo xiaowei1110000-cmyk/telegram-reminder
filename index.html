@@ -392,8 +392,8 @@
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
-            // 设置默认日期为今天
-            document.getElementById('lastUpdated').valueAsDate = new Date());
+            // 设置默认日期为今天（已修复语法错误）
+            document.getElementById('lastUpdated').valueAsDate = new Date();
             
             // 从本地存储加载数据
             loadFromLocalStorage();
