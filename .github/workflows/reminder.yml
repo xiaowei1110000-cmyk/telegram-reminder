@@ -1,40 +1,105 @@
 name: Send Telegram Reminder
 
 on:
+  workflow_dispatch:  # 允许手动触发
   schedule:
-    - cron: '0 3 * * *'  # 每天UTC 3:00运行（即北京时间11:00）
-  workflow_dispatch:      # 允许手动触发
+    - cron: '0 3 * * *'  # 每天UTC时间3:00运行（北京时间11:00）
 
 jobs:
   send-reminder:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Check reminders
-        id: check_reminders
-        run: |
-          # 读取reminders.json文件
-          if [ -f reminders.json ]; then
-            # 解析JSON，查找今日到期的项目
-            # 这里需要添加具体的检查逻辑
-            echo "有今日到期的提醒项目"
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GH_TOKEN || github.token }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Read reminders data
+      id: read-data
+      run: |
+        # 尝试读取reminders.json文件
+        if [ -f "reminders.json" ]; then
+          echo "找到 reminders.json 文件"
+          REMINDERS_COUNT=$(jq length reminders.json)
+          echo "总提醒数量: $REMINDERS_COUNT"
+          
+          # 获取今天日期
+          TODAY=$(date -u +%Y-%m-%d)
+          echo "今天日期(UTC): $TODAY"
+          
+          # 查找今天到期的提醒
+          DUE_TODAY=$(jq -r --arg today "$TODAY" '[.[] | select(.nextReminder == $today)] | length' reminders.json 2>/dev/null || echo "0")
+          echo "今天到期数量: $DUE_TODAY"
+          
+          # 设置输出变量
+          echo "reminders_count=$REMINDERS_COUNT" >> $GITHUB_OUTPUT
+          echo "due_today=$DUE_TODAY" >> $GITHUB_OUTPUT
+          
+          # 如果今天有到期的提醒，准备消息
+          if [ "$DUE_TODAY" -gt 0 ]; then
+            echo "message=📅 今日提醒通知" >> $GITHUB_OUTPUT
+            echo "has_reminders=true" >> $GITHUB_OUTPUT
           else
-            echo "没有提醒数据"
+            echo "message=📅 今天没有到期的提醒" >> $GITHUB_OUTPUT
+            echo "has_reminders=false" >> $GITHUB_OUTPUT
           fi
-      
-      - name: Send Telegram notification
-        if: steps.check_reminders.outputs.has_reminders == 'true'
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message: |
-            📅 今日提醒
-            
-            有以下项目需要处理：
-            
-            {{ 这里列出今日到期的项目 }}
-            
-            ⏰ 请及时处理！
+        else
+          echo "未找到 reminders.json 文件"
+          echo "reminders_count=0" >> $GITHUB_OUTPUT
+          echo "due_today=0" >> $GITHUB_OUTPUT
+          echo "message=ℹ️ 提醒数据文件不存在" >> $GITHUB_OUTPUT
+          echo "has_reminders=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Send Telegram Notification
+      if: steps.read-data.outputs.has_reminders == 'true'
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: |
+          📅 GitHub定时提醒系统 - 今日提醒
+          
+          检查时间：${{ github.event.schedule || '手动触发' }}
+          总提醒数量：${{ steps.read-data.outputs.reminders_count }}
+          今日到期：${{ steps.read-data.outputs.due_today }}
+          
+          请登录系统查看详情：
+          https://github.com/${{ github.repository }}
+          
+          ---
+          🕒 下次检查时间：北京时间11:00
+          
+    - name: Send No Reminders Notification
+      if: steps.read-data.outputs.has_reminders == 'false'
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: |
+          📅 GitHub定时提醒系统
+          
+          检查时间：${{ github.event.schedule || '手动触发' }}
+          总提醒数量：${{ steps.read-data.outputs.reminders_count }}
+          今日到期：${{ steps.read-data.outputs.due_today }}
+          
+          ✅ 今天没有需要处理的提醒！
+          
+          ---
+          🕒 下次检查时间：北京时间11:00
+          
+    - name: Log reminder status
+      run: |
+        echo "=== 提醒系统状态 ==="
+        echo "运行时间: $(date)"
+        echo "仓库: ${{ github.repository }}"
+        echo "触发方式: ${{ github.event_name }}"
+        echo "总提醒数量: ${{ steps.read-data.outputs.reminders_count }}"
+        echo "今日到期: ${{ steps.read-data.outputs.due_today }}"
+        echo "消息: ${{ steps.read-data.outputs.message }}"
