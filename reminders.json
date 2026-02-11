@@ -9,5 +9,16 @@
     "lastNotified": null,
     "notified": false,
     "enabled": true
+  },
+  {
+    "id": 1770800875621,
+    "name": "短信域名池，Wg后台域名池，客服链接",
+    "lastUpdated": "2026-02-10",
+    "nextReminder": "2026-02-15",
+    "days": 5,
+    "createdAt": "2026-02-11T09:07:55.621Z",
+    "lastNotified": null,
+    "notified": false,
+    "enabled": true
   }
 ]
