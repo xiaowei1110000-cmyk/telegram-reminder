@@ -1014,7 +1014,7 @@
         function calculateNextReminderDate(lastDate, intervalDays) {
             const last = new Date(lastDate);
             const next = new Date(last);
-            next.setDate(next.getDate() + intervalDays - 1); // 包含当天，所以减1
+            next.setDate(next.getDate() + intervalDays);
             return next;
         }
         
@@ -1022,11 +1022,11 @@
         function calculateNextNextReminderDate(lastDate, intervalDays) {
             const last = new Date(lastDate);
             const nextNext = new Date(last);
-            nextNext.setDate(nextNext.getDate() + (intervalDays * 2) - 1);
+            nextNext.setDate(nextNext.getDate() + (intervalDays * 2));
             return nextNext;
         }
         
-        // 计算天数差（包含当天）
+        // 计算天数差
         function getDaysBetween(date1, date2) {
             const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
             const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
@@ -1056,7 +1056,7 @@
         
         // ==================== 格式化函数 ====================
         
-        // 格式化日期为中文显示（修复版）
+        // 格式化日期为中文显示
         function formatDate(date) {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1114,19 +1114,6 @@
                 dateStr = dateStr.replace('星期', '周');
                 return dateStr;
             }
-        }
-        
-        // 获取详细的日期字符串
-        function getDetailedDateString(date) {
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            const weekday = date.getDay();
-            
-            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-            const weekdayStr = weekdays[weekday];
-            
-            return `${year}年${month}月${day}日周${weekdayStr}`;
         }
         
         // ==================== 核心数据 ====================
@@ -1327,7 +1314,8 @@
                 days: days,
                 createdAt: new Date().toISOString(),
                 lastNotified: null,
-                notified: false
+                notified: false,
+                enabled: true
             };
             
             reminders.push(reminder);
@@ -1396,6 +1384,8 @@
             
             let html = '';
             reminders.forEach(r => {
+                if (!r.enabled) return; // 跳过已禁用的提醒
+                
                 const lastDate = new Date(r.lastUpdated);
                 const nextDate = new Date(r.nextReminder);
                 const nextNextDate = calculateNextNextReminderDate(r.lastUpdated, r.days);
@@ -1502,8 +1492,8 @@
                             <button class="btn btn-outline quick-complete-btn" data-id="${r.id}" style="padding: 8px 16px; font-size: 0.9rem;">
                                 <i class="fas fa-check"></i> 设为今天
                             </button>
-                            <button class="btn btn-outline complete-btn" data-id="${r.id}" style="padding: 8px 16px; font-size: 0.9rem;">
-                                <i class="fas fa-calendar-check"></i> 标记完成
+                            <button class="btn btn-outline mark-notified-btn" data-id="${r.id}" style="padding: 8px 16px; font-size: 0.9rem;">
+                                <i class="fas fa-bell"></i> 标记已提醒
                             </button>
                         </div>
                     </div>
@@ -1516,8 +1506,9 @@
             setupDynamicEventListeners();
             
             // 更新统计数据
-            totalElement.textContent = reminders.length;
-            activeElement.innerHTML = `<i class="fas fa-check-circle"></i> ${reminders.length}个活动`;
+            const activeReminders = reminders.filter(r => r.enabled !== false).length;
+            totalElement.textContent = activeReminders;
+            activeElement.innerHTML = `<i class="fas fa-check-circle"></i> ${activeReminders}个活动`;
             pendingElement.innerHTML = `<i class="fas fa-clock"></i> ${pendingCount}个即将到期`;
             overdueElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${overdueCount}个已过期`;
             dueTodayElement.textContent = dueTodayCount;
@@ -1528,24 +1519,25 @@
             }
         }
         
-        // 标记为完成（更新下次提醒时间）
-        function markAsComplete(id) {
+        // 标记为已提醒（自动生成下次提醒日期）
+        function markAsNotified(id) {
             const reminder = reminders.find(r => r.id === id);
             if (!reminder) return;
             
             const today = getTodayDateString();
-            const nextDate = calculateNextReminderDate(today, reminder.days);
             
-            // 更新提醒时间
+            // 更新提醒时间：将最后更新时间设为今天，计算新的下次提醒
             reminder.lastUpdated = today;
+            const nextDate = calculateNextReminderDate(today, reminder.days);
             reminder.nextReminder = nextDate.toISOString().split('T')[0];
-            reminder.notified = false;
+            reminder.notified = true;
+            reminder.lastNotified = new Date().toISOString();
             
             saveReminders();
             updateReminderList();
             
             const nextReminderStr = formatDate(nextDate);
-            showNotification(`✅ "${reminder.name}" 已标记为完成<br>下次提醒时间: ${nextReminderStr}`, 'success');
+            showNotification(`✅ "${reminder.name}" 已标记为已提醒<br>下次提醒时间: ${nextReminderStr}`, 'success');
             
             // 自动保存到GitHub
             if (config.autoSave && gitHubAutoSave) {
@@ -1592,10 +1584,15 @@
                     reminder.notified = false;
                 }
                 
+                // 确保有enabled字段
+                if (reminder.enabled === undefined) {
+                    reminder.enabled = true;
+                }
+                
                 // 如果nextReminder已经过去，重新计算
                 const nextDate = new Date(reminder.nextReminder);
                 const todayDate = new Date(today);
-                if (nextDate < todayDate) {
+                if (nextDate < todayDate && reminder.enabled) {
                     // 找到最近的一个未来日期
                     let lastDate = new Date(reminder.lastUpdated);
                     while (nextDate < todayDate) {
@@ -2033,12 +2030,12 @@
                 });
             });
             
-            // 标记完成按钮
-            document.querySelectorAll('.complete-btn').forEach(btn => {
+            // 标记已提醒按钮
+            document.querySelectorAll('.mark-notified-btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const id = parseInt(this.getAttribute('data-id'));
-                    markAsComplete(id);
+                    markAsNotified(id);
                 });
             });
             
@@ -2075,7 +2072,8 @@
                 <strong>间隔天数:</strong> ${reminder.days}天<br>
                 <strong>周期进度:</strong> ${Math.round(progress)}%<br>
                 <strong>创建时间:</strong> ${formatDate(new Date(reminder.createdAt))}<br>
-                <strong>提醒ID:</strong> ${reminder.id}
+                <strong>提醒ID:</strong> ${reminder.id}<br>
+                <strong>状态:</strong> ${reminder.notified ? '已提醒' : '待提醒'}
             `;
             
             showNotification(details, 'info');
@@ -2141,7 +2139,7 @@
         // 下载提醒数据
         function downloadReminders() {
             const jsonData = JSON.stringify(reminders, null, 2);
-            const blob = new Blob([jsonData], { type: 'application/json' });
+            const blob = new Blob([jsonData], { type: 'application/json;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -2166,9 +2164,43 @@
                 }
             }
         }
+        
+        // 模拟发送提醒（用于测试）
+        function simulateSendReminders() {
+            const today = getTodayDateString();
+            const dueReminders = reminders.filter(r => {
+                if (!r.enabled) return false;
+                const nextDate = new Date(r.nextReminder);
+                const todayDate = new Date(today);
+                return nextDate <= todayDate && !r.notified;
+            });
+            
+            if (dueReminders.length === 0) {
+                showNotification('今日没有需要提醒的项目', 'info');
+                return;
+            }
+            
+            dueReminders.forEach(reminder => {
+                // 标记为已提醒
+                reminder.lastUpdated = today;
+                const nextDate = calculateNextReminderDate(today, reminder.days);
+                reminder.nextReminder = nextDate.toISOString().split('T')[0];
+                reminder.notified = true;
+                reminder.lastNotified = new Date().toISOString();
+                
+                showNotification(`📢 已发送提醒: ${reminder.name}<br>下次提醒: ${formatDate(nextDate)}`, 'success');
+            });
+            
+            saveReminders();
+            updateReminderList();
+            
+            if (config.autoSave && gitHubAutoSave) {
+                autoSaveToGitHub();
+            }
+        }
     </script>
     
-    <!-- GitHub自动保存类 -->
+    <!-- GitHub自动保存类 (修复中文乱码问题) -->
     <script>
         class GitHubAutoSave {
             constructor(username, repoName, token) {
@@ -2287,6 +2319,7 @@
                 }
             }
             
+            // 修复中文乱码问题：使用正确的Base64编码
             async saveToGitHub(content, commitMessage, knownSHA = null) {
                 try {
                     let sha = knownSHA;
@@ -2298,14 +2331,28 @@
                         }
                     }
                     
-                    const requestData = {
-                        message: commitMessage,
-                        content: btoa(unescape(encodeURIComponent(content)))
+                    // 修复中文乱码：使用正确的UTF-8到Base64编码
+                    const utf8ToBase64 = (str) => {
+                        try {
+                            // 方法1: 使用TextEncoder
+                            const encoder = new TextEncoder();
+                            const bytes = encoder.encode(str);
+                            let binary = '';
+                            for (let i = 0; i < bytes.length; i++) {
+                                binary += String.fromCharCode(bytes[i]);
+                            }
+                            return btoa(binary);
+                        } catch (e) {
+                            // 方法2: 备用方案
+                            return btoa(unescape(encodeURIComponent(str)));
+                        }
                     };
                     
-                    if (sha) {
-                        requestData.sha = sha;
-                    }
+                    const requestData = {
+                        message: commitMessage,
+                        content: utf8ToBase64(content),
+                        sha: sha
+                    };
                     
                     const response = await fetch(
                         `${this.apiBase}/repos/${this.username}/${this.repoName}/contents/reminders.json`,
@@ -2340,6 +2387,56 @@
                             error: errorMessage,
                             httpStatus: response.status
                         };
+                    }
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+            
+            // 模拟GitHub Actions发送提醒
+            async simulateGitHubActions() {
+                try {
+                    const today = getTodayDateString();
+                    const dueReminders = reminders.filter(r => {
+                        if (!r.enabled) return false;
+                        const nextDate = new Date(r.nextReminder);
+                        const todayDate = new Date(today);
+                        return nextDate <= todayDate && !r.notified;
+                    });
+                    
+                    if (dueReminders.length === 0) {
+                        return {
+                            success: true,
+                            message: '今日没有需要提醒的项目',
+                            count: 0
+                        };
+                    }
+                    
+                    // 更新提醒状态
+                    dueReminders.forEach(reminder => {
+                        reminder.lastUpdated = today;
+                        const nextDate = calculateNextReminderDate(today, reminder.days);
+                        reminder.nextReminder = nextDate.toISOString().split('T')[0];
+                        reminder.notified = true;
+                        reminder.lastNotified = new Date().toISOString();
+                    });
+                    
+                    // 保存到GitHub
+                    const jsonData = JSON.stringify(reminders, null, 2);
+                    const result = await this.saveToGitHub(jsonData, `GitHub Actions: 发送提醒 (${dueReminders.length}个)`);
+                    
+                    if (result.success) {
+                        return {
+                            success: true,
+                            message: `已发送 ${dueReminders.length} 个提醒`,
+                            count: dueReminders.length,
+                            reminders: dueReminders.map(r => r.name)
+                        };
+                    } else {
+                        return result;
                     }
                 } catch (error) {
                     return {
