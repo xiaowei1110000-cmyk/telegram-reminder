@@ -6,172 +6,201 @@
     <title>GitHub定时提醒系统 - 专业版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* 基础样式 */
+        :root {
+            --primary: #2d8cff;
+            --primary-dark: #1a6fd6;
+            --secondary: #10b981;
+            --secondary-dark: #0da271;
+            --danger: #ef4444;
+            --danger-dark: #dc2626;
+            --warning: #f59e0b;
+            --warning-dark: #d97706;
+            --info: #3b82f6;
+            --dark-bg: #0f172a;
+            --dark-card: #1e293b;
+            --dark-border: #334155;
+            --dark-text: #f1f5f9;
+            --dark-text-secondary: #94a3b8;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
         }
-        
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #06b6d4;
-            --dark-bg: #0f172a;
-            --dark-card: #1e293b;
-            --dark-border: #334155;
-            --dark-text: #e2e8f0;
-            --dark-text-secondary: #94a3b8;
-            --dark-hover: #2d3748;
-        }
-        
+
         body {
-            background: var(--dark-bg);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: var(--dark-text);
             min-height: 100vh;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
             padding: 20px;
         }
-        
-        /* Header */
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 标题样式 */
         header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            padding: 30px;
-            border-radius: 16px;
-            margin-bottom: 30px;
             text-align: center;
-            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
-            position: relative;
-            overflow: hidden;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(90deg, rgba(45, 140, 255, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(45, 140, 255, 0.2);
         }
-        
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--secondary), var(--info));
-        }
-        
+
         h1 {
             font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
+            background: linear-gradient(90deg, #2d8cff, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
+            margin-bottom: 10px;
         }
-        
+
         .subtitle {
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--dark-text-secondary);
             font-size: 1.1rem;
+            font-weight: 400;
         }
-        
-        /* Cards */
+
+        /* 卡片样式 */
         .card {
             background: var(--dark-card);
             border-radius: 16px;
             padding: 25px;
             margin-bottom: 25px;
             border: 1px solid var(--dark-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
+
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
         }
-        
+
         .card-header {
             display: flex;
             align-items: center;
+            gap: 15px;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 1px solid var(--dark-border);
         }
-        
+
         .card-icon {
-            background: var(--primary);
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
         }
-        
+
         h2 {
             font-size: 1.5rem;
-            font-weight: 600;
             color: var(--dark-text);
+            font-weight: 600;
         }
-        
-        /* Form Elements */
+
+        /* 统计卡片网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 10px 0;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            color: var(--dark-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* 表单样式 */
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 8px;
-            color: var(--dark-text-secondary);
+            color: var(--dark-text);
             font-weight: 500;
-            font-size: 0.95rem;
         }
-        
-        input, textarea, select {
+
+        .input-with-icon {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            color: var(--dark-text-secondary);
+            z-index: 1;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="time"],
+        input[type="date"],
+        input[type="number"] {
             width: 100%;
-            padding: 12px 16px;
-            background: rgba(30, 41, 59, 0.7);
+            padding: 12px 15px 12px 45px;
+            background: rgba(30, 41, 59, 0.8);
             border: 1px solid var(--dark-border);
-            border-radius: 10px;
+            border-radius: 8px;
             color: var(--dark-text);
             font-size: 1rem;
             transition: all 0.3s ease;
         }
-        
-        input:focus, textarea:focus, select:focus {
+
+        input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 0 3px rgba(45, 140, 255, 0.2);
         }
-        
-        .input-with-icon {
-            position: relative;
-        }
-        
-        .input-with-icon i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--dark-text-secondary);
-        }
-        
-        .input-with-icon input {
-            padding-left: 45px;
-        }
-        
-        /* Buttons */
+
+        /* 按钮样式 */
         .btn {
             padding: 12px 24px;
+            border-radius: 8px;
             border: none;
-            border-radius: 10px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
             display: inline-flex;
@@ -179,288 +208,401 @@
             justify-content: center;
             gap: 8px;
         }
-        
+
         .btn-primary {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary), var(--info));
             color: white;
         }
-        
+
         .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(45, 140, 255, 0.4);
         }
-        
+
         .btn-success {
-            background: var(--secondary);
+            background: linear-gradient(135deg, var(--secondary), #22c55e);
             color: white;
         }
-        
+
         .btn-warning {
-            background: var(--warning);
-            color: #1f2937;
+            background: linear-gradient(135deg, var(--warning), #fbbf24);
+            color: white;
         }
-        
+
         .btn-danger {
-            background: var(--danger);
+            background: linear-gradient(135deg, var(--danger), #f87171);
             color: white;
         }
-        
-        .btn-info {
-            background: var(--info);
-            color: white;
-        }
-        
+
         .btn-outline {
             background: transparent;
             border: 1px solid var(--dark-border);
             color: var(--dark-text);
         }
-        
+
         .btn-outline:hover {
-            background: var(--dark-hover);
+            border-color: var(--primary);
+            color: var(--primary);
         }
-        
+
         .btn-group {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            margin-top: 20px;
         }
-        
-        /* Toggle Switch */
+
+        /* 切换开关 */
         .toggle {
             position: relative;
-            display: inline-flex;
+            display: flex;
             align-items: center;
+            gap: 10px;
             cursor: pointer;
         }
-        
+
         .toggle input {
-            opacity: 0;
-            width: 0;
-            height: 0;
+            display: none;
         }
-        
+
         .toggle-slider {
             width: 50px;
             height: 26px;
             background: var(--dark-border);
-            border-radius: 34px;
+            border-radius: 13px;
             position: relative;
-            transition: 0.4s;
-            margin-right: 10px;
+            transition: all 0.3s ease;
         }
-        
+
         .toggle-slider:before {
             content: '';
             position: absolute;
-            height: 20px;
             width: 20px;
-            left: 3px;
-            bottom: 3px;
+            height: 20px;
             background: white;
             border-radius: 50%;
-            transition: 0.4s;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s ease;
         }
-        
-        input:checked + .toggle-slider {
+
+        .toggle input:checked + .toggle-slider {
             background: var(--secondary);
         }
-        
-        input:checked + .toggle-slider:before {
+
+        .toggle input:checked + .toggle-slider:before {
             transform: translateX(24px);
         }
-        
-        /* Status Indicators */
+
+        /* 状态徽章 */
         .status-badge {
             display: inline-flex;
             align-items: center;
+            gap: 6px;
             padding: 6px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
-            font-weight: 600;
+            font-weight: 500;
         }
-        
+
         .status-online {
-            background: rgba(16, 185, 129, 0.2);
+            background: rgba(16, 185, 129, 0.15);
             color: var(--secondary);
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
-        
-        .status-offline {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--danger);
-        }
-        
+
         .status-warning {
-            background: rgba(245, 158, 11, 0.2);
+            background: rgba(245, 158, 11, 0.15);
             color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
         }
-        
+
+        .status-offline {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
         .status-indicator {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
+            background: var(--secondary);
         }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        /* Reminder Items */
+
+        /* 提醒列表 */
         .reminder-grid {
             display: grid;
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
         }
-        
+
         .reminder-item {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--dark-border);
             border-radius: 12px;
             padding: 20px;
-            border-left: 4px solid var(--primary);
             transition: all 0.3s ease;
         }
-        
+
         .reminder-item:hover {
-            background: var(--dark-hover);
-            transform: translateX(5px);
+            border-color: var(--primary);
+            transform: translateY(-3px);
         }
-        
+
         .reminder-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 15px;
         }
-        
+
         .reminder-name {
             font-size: 1.2rem;
             font-weight: 600;
             color: var(--dark-text);
         }
-        
+
+        .delete-btn {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: scale(1.1);
+        }
+
         .reminder-meta {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 10px;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
         }
-        
+
         .meta-item {
             display: flex;
             flex-direction: column;
         }
-        
+
         .meta-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--dark-text-secondary);
             margin-bottom: 4px;
         }
-        
+
         .meta-value {
-            font-size: 1rem;
+            font-size: 0.95rem;
+            font-weight: 500;
             color: var(--dark-text);
-            font-weight: 600;
         }
-        
-        .meta-value.time-urgent {
-            color: var(--danger);
-            animation: blink 2s infinite;
-        }
-        
-        .meta-value.time-warning {
-            color: var(--warning);
-        }
-        
-        .meta-value.time-normal {
+
+        /* 时间状态 */
+        .time-normal {
             color: var(--secondary);
         }
-        
-        @keyframes blink {
+
+        .time-warning {
+            color: var(--warning);
+        }
+
+        .time-urgent {
+            color: var(--danger);
+        }
+
+        /* 进度条 */
+        .progress-container {
+            margin: 15px 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--dark-text-secondary);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--dark-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, var(--warning), #fbbf24);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, var(--danger), #f87171);
+        }
+
+        /* 信息框 */
+        .cycle-info {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            font-size: 0.9rem;
+        }
+
+        .cycle-info.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--secondary);
+        }
+
+        .cycle-info.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .cycle-info.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        /* 同步状态 */
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--dark-border);
+        }
+
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--dark-border);
+            position: relative;
+        }
+
+        .sync-indicator.syncing {
+            background: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+
+        .sync-indicator.error {
+            background: var(--danger);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        
-        .reminder-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        /* Stats */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .stat-card {
-            background: rgba(30, 41, 59, 0.7);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            border-top: 3px solid var(--primary);
-        }
-        
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 10px 0;
-        }
-        
-        .stat-label {
-            color: var(--dark-text-secondary);
-            font-size: 0.9rem;
-        }
-        
-        /* Notifications */
-        .notification {
+
+        /* 通知样式 */
+        #notificationArea {
             position: fixed;
             top: 20px;
             right: 20px;
-            min-width: 300px;
-            background: var(--dark-card);
-            border-radius: 10px;
-            padding: 15px 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-            border-left: 4px solid var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 15px;
             z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
+            max-width: 400px;
         }
-        
+
+        .notification {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+
         .notification.show {
             transform: translateX(0);
+            opacity: 1;
         }
-        
+
         .notification.success {
-            border-left-color: var(--secondary);
+            border-left: 4px solid var(--secondary);
         }
-        
+
         .notification.error {
-            border-left-color: var(--danger);
+            border-left: 4px solid var(--danger);
         }
-        
+
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+
         .notification.info {
-            border-left-color: var(--info);
+            border-left: 4px solid var(--info);
         }
-        
-        /* Responsive */
+
+        .notification i {
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .notification.success i {
+            color: var(--secondary);
+        }
+
+        .notification.error i {
+            color: var(--danger);
+        }
+
+        .notification.warning i {
+            color: var(--warning);
+        }
+
+        .notification.info i {
+            color: var(--info);
+        }
+
+        /* 响应式设计 */
         @media (max-width: 768px) {
             .container {
-                padding: 15px;
+                padding: 10px;
             }
             
             h1 {
                 font-size: 2rem;
                 flex-direction: column;
                 gap: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .reminder-grid {
+                grid-template-columns: 1fr;
             }
             
             .btn-group {
@@ -471,127 +613,40 @@
                 width: 100%;
             }
             
-            .reminder-meta {
-                grid-template-columns: 1fr;
+            .notification {
+                max-width: calc(100vw - 40px);
             }
         }
-        
-        /* GitHub Integration */
-        .github-badge {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: var(--dark-text);
-            text-decoration: none;
-            transition: all 0.3s ease;
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 10px;
         }
-        
-        .github-badge:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-        
-        /* Loading */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Progress Bar */
-        .progress-container {
-            margin-top: 10px;
-        }
-        
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-        
-        .progress-bar {
-            height: 8px;
+
+        ::-webkit-scrollbar-track {
             background: var(--dark-border);
-            border-radius: 4px;
-            overflow: hidden;
+            border-radius: 5px;
         }
-        
-        .progress-fill {
-            height: 100%;
-            background: var(--secondary);
-            border-radius: 4px;
-            transition: width 0.3s ease;
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 5px;
         }
-        
-        .progress-fill.warning {
-            background: var(--warning);
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
         }
-        
-        .progress-fill.danger {
-            background: var(--danger);
+
+        /* 链接样式 */
+        a {
+            color: var(--info);
+            text-decoration: none;
+            transition: color 0.3s ease;
         }
-        
-        /* Sync Status */
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            font-size: 0.9rem;
-        }
-        
-        .sync-indicator {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--secondary);
-        }
-        
-        .sync-indicator.syncing {
-            animation: pulse 1s infinite;
-        }
-        
-        .sync-indicator.error {
-            background: var(--danger);
-        }
-        
-        /* Reminder Cycle Status */
-        .cycle-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            padding: 8px 12px;
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-        
-        .cycle-info.warning {
-            background: rgba(245, 158, 11, 0.2);
-            border-left: 3px solid var(--warning);
-        }
-        
-        .cycle-info.danger {
-            background: rgba(239, 68, 68, 0.2);
-            border-left: 3px solid var(--danger);
-        }
-        
-        .cycle-info.success {
-            background: rgba(16, 185, 129, 0.2);
-            border-left: 3px solid var(--secondary);
+
+        a:hover {
+            color: var(--primary);
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -740,16 +795,16 @@
             </div>
             
             <div class="btn-group">
-                <button class="btn btn-success" onclick="saveTokenConfig()">
+                <button class="btn btn-success" id="saveTokenBtn">
                     <i class="fas fa-save"></i> 保存配置
                 </button>
-                <button class="btn btn-info" onclick="testAutoSave()">
+                <button class="btn btn-info" id="testAutoSaveBtn">
                     <i class="fas fa-test"></i> 测试连接
                 </button>
-                <button class="btn btn-outline" onclick="clearToken()">
+                <button class="btn btn-outline" id="clearTokenBtn">
                     <i class="fas fa-trash"></i> 清除Token
                 </button>
-                <button class="btn btn-warning" onclick="forceRefreshGitHubData()">
+                <button class="btn btn-warning" id="forceRefreshBtn">
                     <i class="fas fa-sync-alt"></i> 强制刷新
                 </button>
             </div>
@@ -774,7 +829,7 @@
                     <label for="reminderName">提醒名称</label>
                     <div class="input-with-icon">
                         <i class="fas fa-tag"></i>
-                        <input type="text" id="reminderName" placeholder="例如：网宿IP更新" onkeypress="if(event.key === 'Enter') addReminder()">
+                        <input type="text" id="reminderName" placeholder="例如：网宿IP更新">
                     </div>
                 </div>
                 
@@ -829,7 +884,7 @@
                 </div>
             </div>
             
-            <button class="btn btn-primary" onclick="addReminder()" style="margin-top: 10px;">
+            <button class="btn btn-primary" id="addReminderBtn">
                 <i class="fas fa-plus"></i> 添加提醒
             </button>
         </div>
@@ -866,16 +921,16 @@
             </div>
             
             <div class="btn-group" style="margin-top: 20px;">
-                <button class="btn btn-success" onclick="manualSaveToGitHub()">
+                <button class="btn btn-success" id="manualSaveBtn">
                     <i class="fas fa-cloud-upload-alt"></i> 保存到GitHub
                 </button>
-                <button class="btn btn-outline" onclick="downloadReminders()">
+                <button class="btn btn-outline" id="downloadBackupBtn">
                     <i class="fas fa-download"></i> 下载备份
                 </button>
-                <button class="btn btn-outline" onclick="loadFromGitHub()">
+                <button class="btn btn-outline" id="loadFromGitHubBtn">
                     <i class="fas fa-download"></i> 从GitHub加载
                 </button>
-                <button class="btn btn-danger" onclick="clearAll()">
+                <button class="btn btn-danger" id="clearAllBtn">
                     <i class="fas fa-trash"></i> 清空所有
                 </button>
             </div>
@@ -920,13 +975,13 @@
                 <div>
                     <h3 style="margin-bottom: 15px; color: var(--dark-text);">快速操作</h3>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button class="btn btn-outline" onclick="checkSystemStatus()">
+                        <button class="btn btn-outline" id="refreshStatusBtn">
                             <i class="fas fa-sync-alt"></i> 刷新状态
                         </button>
-                        <button class="btn btn-primary" onclick="viewActionsPage()">
+                        <button class="btn btn-primary" id="viewActionsBtn">
                             <i class="fab fa-github"></i> 查看Actions
                         </button>
-                        <button class="btn btn-warning" onclick="manualTest()">
+                        <button class="btn btn-warning" id="manualTestBtn">
                             <i class="fas fa-play"></i> 手动测试
                         </button>
                         <a href="https://github.com/xiaowei1110000-cmyk/telegram-reminder" 
@@ -943,6 +998,7 @@
     <!-- Notification Container -->
     <div id="notificationArea"></div>
     
+    <!-- JavaScript部分保持不变（您原来的JS代码） -->
     <script>
         // 核心数据
         let reminders = [];
@@ -974,10 +1030,57 @@
             document.getElementById('reminderTime').value = config.reminderTime;
             document.getElementById('autoMarkCompleted').checked = config.autoMarkCompleted;
             
+            // 设置按钮事件监听器
+            setupEventListeners();
+            
             // 每分钟检查一次状态
             setInterval(checkSystemStatus, 60000);
             
-            // 设置自动保存开关事件
+            // 初始化系统状态
+            checkSystemStatus();
+            
+            // 为输入框添加实时预览
+            document.getElementById('lastUpdated').addEventListener('change', updatePreview);
+            document.getElementById('reminderDays').addEventListener('input', updatePreview);
+            
+            // 初始更新预览
+            updatePreview();
+            
+            // 初始化同步状态
+            updateSyncStatus();
+            
+            // 初始化GitHub自动保存
+            initGitHubAutoSave();
+        });
+        
+        // 设置所有按钮的事件监听器
+        function setupEventListeners() {
+            // GitHub配置按钮
+            document.getElementById('saveTokenBtn').addEventListener('click', saveTokenConfig);
+            document.getElementById('testAutoSaveBtn').addEventListener('click', testAutoSave);
+            document.getElementById('clearTokenBtn').addEventListener('click', clearToken);
+            document.getElementById('forceRefreshBtn').addEventListener('click', forceRefreshGitHubData);
+            
+            // 提醒操作按钮
+            document.getElementById('addReminderBtn').addEventListener('click', addReminder);
+            document.getElementById('manualSaveBtn').addEventListener('click', manualSaveToGitHub);
+            document.getElementById('downloadBackupBtn').addEventListener('click', downloadReminders);
+            document.getElementById('loadFromGitHubBtn').addEventListener('click', loadFromGitHub);
+            document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+            
+            // 系统状态按钮
+            document.getElementById('refreshStatusBtn').addEventListener('click', checkSystemStatus);
+            document.getElementById('viewActionsBtn').addEventListener('click', viewActionsPage);
+            document.getElementById('manualTestBtn').addEventListener('click', manualTest);
+            
+            // 输入框回车事件
+            document.getElementById('reminderName').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addReminder();
+                }
+            });
+            
+            // 自动保存开关事件
             document.getElementById('autoSaveToggle').addEventListener('change', function() {
                 config.autoSave = this.checked;
                 saveConfig();
@@ -1001,20 +1104,7 @@
                 saveConfig();
                 showNotification('✅ 自动标记设置已更新', 'success');
             });
-            
-            // 初始化系统状态
-            checkSystemStatus();
-            
-            // 为输入框添加实时预览
-            document.getElementById('lastUpdated').addEventListener('change', updatePreview);
-            document.getElementById('reminderDays').addEventListener('input', updatePreview);
-            
-            // 初始更新预览
-            updatePreview();
-            
-            // 初始化同步状态
-            updateSyncStatus();
-        });
+        }
         
         // 更新同步状态
         function updateSyncStatus(status = '', isSyncing = false) {
@@ -1094,8 +1184,9 @@
             
             // 计算进度
             const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const totalMs = nextDate - lastDate;
-            const elapsedMs = now - lastDate;
+            const elapsedMs = today - lastDate;
             let progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
             
             // 判断状态
@@ -1185,6 +1276,7 @@
             config.autoMarkCompleted = document.getElementById('autoMarkCompleted').checked;
             
             localStorage.setItem('telegramReminderConfig', JSON.stringify(config));
+            console.log('配置已保存:', config);
         }
         
         // 初始化GitHub自动保存
@@ -1211,6 +1303,7 @@
         
         // 保存Token配置
         function saveTokenConfig() {
+            console.log('保存Token配置');
             const token = document.getElementById('githubToken').value.trim();
             const username = document.getElementById('githubUsername').value.trim();
             const repo = document.getElementById('githubRepo').value.trim();
@@ -1237,6 +1330,7 @@
         
         // 测试自动保存
         async function testAutoSave() {
+            console.log('测试自动保存');
             if (!config.githubToken) {
                 showNotification('请先配置GitHub Token', 'error');
                 return;
@@ -1274,6 +1368,7 @@
         
         // 清除Token
         function clearToken() {
+            console.log('清除Token');
             if (confirm('确定要清除Token吗？清除后自动保存将失效。')) {
                 config.githubToken = '';
                 document.getElementById('githubToken').value = '';
@@ -1311,6 +1406,7 @@
         
         // 从GitHub加载数据
         async function loadFromGitHub() {
+            console.log('从GitHub加载数据');
             if (!gitHubAutoSave) {
                 showNotification('请先配置GitHub Token并测试连接', 'error');
                 return;
@@ -1373,16 +1469,22 @@
                     reminder.nextReminder = calculateNextReminderDate(reminder.lastUpdated, reminder.days).toISOString().split('T')[0];
                 }
                 
+                // 确保有notified字段
+                if (reminder.notified === undefined) {
+                    reminder.notified = false;
+                }
+                
                 // 如果nextReminder已经过去，重新计算
                 const nextDate = new Date(reminder.nextReminder);
-                if (nextDate < now) {
+                const todayDate = new Date(today);
+                if (nextDate < todayDate) {
                     // 找到最近的一个未来日期
                     let lastDate = new Date(reminder.lastUpdated);
-                    while (nextDate < now) {
-                        lastDate = new Date(nextDate);
-                        lastDate.setDate(lastDate.getDate() + reminder.days);
-                        reminder.nextReminder = lastDate.toISOString().split('T')[0];
+                    while (nextDate < todayDate) {
+                        nextDate.setDate(nextDate.getDate() + reminder.days);
                     }
+                    reminder.nextReminder = nextDate.toISOString().split('T')[0];
+                    reminder.notified = false; // 重置通知状态
                 }
             });
         }
@@ -1429,6 +1531,7 @@
         
         // 添加提醒（带自动保存）
         async function addReminder() {
+            console.log('添加提醒');
             const name = document.getElementById('reminderName').value.trim();
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
@@ -1490,8 +1593,9 @@
             }
         }
         
-        // 删除提醒（带自动保存）
+        // 删除提醒
         async function deleteReminder(id) {
+            console.log('删除提醒:', id);
             if (!confirm('确定要删除这个提醒吗？')) {
                 return;
             }
@@ -1516,6 +1620,7 @@
         
         // 编辑提醒
         function editReminder(id) {
+            console.log('编辑提醒:', id);
             const reminder = reminders.find(r => r.id === id);
             if (!reminder) return;
             
@@ -1531,6 +1636,7 @@
         
         // 查看详情
         function viewDetails(id) {
+            console.log('查看详情:', id);
             const reminder = reminders.find(r => r.id === id);
             if (!reminder) return;
             
@@ -1540,8 +1646,9 @@
             
             // 计算进度
             const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const totalMs = nextDate - lastDate;
-            const elapsedMs = now - lastDate;
+            const elapsedMs = today - lastDate;
             const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
             
             const details = `
@@ -1561,6 +1668,7 @@
         
         // 标记为完成（更新下次提醒时间）
         function markAsComplete(id) {
+            console.log('标记完成:', id);
             const reminder = reminders.find(r => r.id === id);
             if (!reminder) return;
             
@@ -1586,6 +1694,7 @@
         
         // 快速完成（设置为今天）
         function quickComplete(id) {
+            console.log('快速完成:', id);
             const reminder = reminders.find(r => r.id === id);
             if (!reminder) return;
             
@@ -1610,6 +1719,7 @@
         
         // 手动保存到GitHub
         async function manualSaveToGitHub() {
+            console.log('手动保存到GitHub');
             if (!gitHubAutoSave) {
                 showNotification('请先配置GitHub Token并测试连接', 'error');
                 return;
@@ -1739,7 +1849,7 @@
                 const nextNextUpdateStr = formatDate(nextNextDate);
                 
                 html += `
-                    <div class="reminder-item">
+                    <div class="reminder-item" data-id="${r.id}">
                         <div class="reminder-header">
                             <div>
                                 <div class="reminder-name">${r.name}</div>
@@ -1747,8 +1857,7 @@
                                     ID: ${r.id} | 创建于: ${formatDate(new Date(r.createdAt))}
                                 </div>
                             </div>
-                            <button onclick="deleteReminder(${r.id})" 
-                                    style="background: transparent; border: none; color: var(--danger); cursor: pointer; padding: 8px;">
+                            <button class="delete-btn" data-id="${r.id}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -1793,13 +1902,13 @@
                         </div>
                         
                         <div class="reminder-actions">
-                            <button class="btn btn-outline" onclick="editReminder(${r.id})" style="padding: 8px 16px; font-size: 0.9rem;">
+                            <button class="btn btn-outline edit-btn" data-id="${r.id}" style="padding: 8px 16px; font-size: 0.9rem;">
                                 <i class="fas fa-edit"></i> 编辑
                             </button>
-                            <button class="btn btn-outline" onclick="quickComplete(${r.id})" style="padding: 8px 16px; font-size: 0.9rem;">
+                            <button class="btn btn-outline quick-complete-btn" data-id="${r.id}" style="padding: 8px 16px; font-size: 0.9rem;">
                                 <i class="fas fa-check"></i> 设为今天
                             </button>
-                            <button class="btn btn-outline" onclick="markAsComplete(${r.id})" style="padding: 8px 16px; font-size: 0.9rem;">
+                            <button class="btn btn-outline complete-btn" data-id="${r.id}" style="padding: 8px 16px; font-size: 0.9rem;">
                                 <i class="fas fa-calendar-check"></i> 标记完成
                             </button>
                         </div>
@@ -1808,6 +1917,9 @@
             });
             
             list.innerHTML = html;
+            
+            // 为动态生成的按钮添加事件监听器
+            setupDynamicEventListeners();
             
             // 更新统计数据
             totalElement.textContent = reminders.length;
@@ -1820,6 +1932,56 @@
             if (dueTodayCount > 0) {
                 showNotification(`有 ${dueTodayCount} 个提醒今日到期，请及时处理！`, 'warning');
             }
+        }
+        
+        // 为动态生成的按钮设置事件监听器
+        function setupDynamicEventListeners() {
+            // 删除按钮
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = parseInt(this.getAttribute('data-id'));
+                    deleteReminder(id);
+                });
+            });
+            
+            // 编辑按钮
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = parseInt(this.getAttribute('data-id'));
+                    editReminder(id);
+                });
+            });
+            
+            // 设为今天按钮
+            document.querySelectorAll('.quick-complete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = parseInt(this.getAttribute('data-id'));
+                    quickComplete(id);
+                });
+            });
+            
+            // 标记完成按钮
+            document.querySelectorAll('.complete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = parseInt(this.getAttribute('data-id'));
+                    markAsComplete(id);
+                });
+            });
+            
+            // 点击提醒项查看详情
+            document.querySelectorAll('.reminder-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    // 如果不是点击按钮，则查看详情
+                    if (!e.target.closest('button')) {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        viewDetails(id);
+                    }
+                });
+            });
         }
         
         // 辅助函数：格式化日期
@@ -1848,6 +2010,7 @@
         
         // 检查系统状态
         function checkSystemStatus() {
+            console.log('检查系统状态');
             const statusIcon = document.getElementById('statusIcon');
             const nextRunInfo = document.getElementById('nextRunInfo');
             const lastRunInfo = document.getElementById('lastRunInfo');
@@ -1892,11 +2055,13 @@
         
         // 查看Actions页面
         function viewActionsPage() {
+            console.log('查看Actions页面');
             window.open(`https://github.com/${config.username}/${config.repoName}/actions`, '_blank');
         }
         
         // 手动测试
         function manualTest() {
+            console.log('手动测试');
             const actionsUrl = `https://github.com/${config.username}/${config.repoName}/actions`;
             showNotification(
                 `🔧 手动测试步骤：<br>
@@ -1911,6 +2076,7 @@
         
         // 下载提醒数据
         function downloadReminders() {
+            console.log('下载提醒数据');
             const jsonData = JSON.stringify(reminders, null, 2);
             const blob = new Blob([jsonData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1926,6 +2092,7 @@
         
         // 清空所有提醒
         function clearAll() {
+            console.log('清空所有提醒');
             if (confirm('确定要清空所有提醒吗？此操作不可撤销！')) {
                 reminders = [];
                 saveReminders();
@@ -1989,18 +2156,6 @@
                 }, 300);
             }, 5000);
         }
-        
-        // 导出函数到全局
-        window.deleteReminder = deleteReminder;
-        window.editReminder = editReminder;
-        window.viewDetails = viewDetails;
-        window.markAsComplete = markAsComplete;
-        window.quickComplete = quickComplete;
-        window.loadFromGitHub = loadFromGitHub;
-        window.forceRefreshGitHubData = forceRefreshGitHubData;
-        
-        // 初始化GitHub自动保存
-        initGitHubAutoSave();
     </script>
     
     <!-- GitHub自动保存类 -->
