@@ -1,257 +1,231 @@
-# ============================================
-# 定时提醒系统 - 主工作流文件
-# 位置：.github/workflows/send-reminder.yml
-# 功能：每3分钟检查一次，到期自动发送Telegram
-# ============================================
-
 name: 定时提醒系统
 
-# 触发条件
 on:
-  # 1. 定时触发：每3分钟运行一次
   schedule:
-    - cron: '*/3 * * * *'
-  
-  # 2. 手动触发：用于测试
-  workflow_dispatch:
-    inputs:
-      reason:
-        description: '触发原因'
-        required: false
-        default: '手动测试'
+    - cron: '*/3 * * * *'   # 每3分钟运行一次
+  workflow_dispatch:         # 手动触发
 
-# 权限设置
 permissions:
-  contents: write  # 允许写入仓库
+  contents: write
 
 jobs:
-  check-and-send:
-    name: 检查并发送提醒
+  send-reminder:
     runs-on: ubuntu-latest
-    
     steps:
-      # 步骤1：获取代码
       - name: 📥 下载代码
         uses: actions/checkout@v3
         with:
           fetch-depth: 1
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      # 步骤2：设置Node.js
+          
       - name: 🔧 设置Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
-      # 步骤3：安装依赖
+          
       - name: 📦 安装依赖
-        run: |
-          npm init -y
-          npm install node-fetch@2
-      
-      # 步骤4：执行提醒脚本
-      - name: 🤖 执行提醒检查
-        id: reminder
+        run: npm install node-fetch@2
+        
+      - name: 🤖 执行提醒
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "⏰ 开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
-          echo "📅 北京时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
+          echo "==================================="
+          echo "🚀 开始执行提醒任务"
+          echo "==================================="
+          echo "⏰ 北京时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
+          echo ""
           
-          # ==================== 核心脚本 ====================
-          cat > reminder.js << 'NODE_SCRIPT'
-const fs = require('fs');
-const https = require('https');
+          # ============ 1. 测试Telegram连接（关键步骤） ============
+          echo "📤 正在发送测试消息到Telegram..."
+          
+          TEST_URL="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+          TEST_DATA="chat_id=${TELEGRAM_CHAT_ID}&text=✅ GitHub Actions 连接测试成功%0A⏰ 时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')%0A📦 仓库: ${{ github.repository }}"
+          
+          curl -s -X POST "$TEST_URL" -d "$TEST_DATA"
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Telegram 测试消息发送成功！"
+          else
+            echo "❌ Telegram 测试消息发送失败！"
+            echo "   请检查 Secrets 配置是否正确"
+            exit 1
+          fi
+          
+          echo ""
+          echo "==================================="
+          echo "📋 开始处理提醒数据"
+          echo "==================================="
+          
+          # ============ 2. Node.js 脚本处理提醒 ============
+          node << 'EOF'
+          const fs = require('fs');
+          const https = require('https');
 
-// ---------- 日期工具函数 ----------
-function getBeijingDate() {
-    const now = new Date();
-    now.setHours(now.getHours() + 8);
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
+          // 获取北京时间
+          function getBeijingDate() {
+            const now = new Date();
+            now.setHours(now.getHours() + 8);
+            return now.toISOString().split('T')[0];
+          }
 
-function getBeijingTime() {
-    const now = new Date();
-    now.setHours(now.getHours() + 8);
-    return now.toLocaleString('zh-CN', { hour12: false });
-}
+          // 获取北京时间（完整格式）
+          function getBeijingTime() {
+            const now = new Date();
+            now.setHours(now.getHours() + 8);
+            return now.toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
+          }
 
-function getNextDate(dateStr, days) {
-    const date = new Date(dateStr);
-    date.setDate(date.getDate() + days);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
+          // 计算下次提醒日期
+          function getNextDate(dateStr, days) {
+            const date = new Date(dateStr);
+            date.setDate(date.getDate() + days);
+            return date.toISOString().split('T')[0];
+          }
 
-// ---------- 主函数 ----------
-async function main() {
-    console.log('='.repeat(60));
-    console.log('🚀 定时提醒系统启动');
-    console.log('='.repeat(60));
-    
-    // 1. 获取配置
-    const token = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
-    
-    if (!token || !chatId) {
-        console.log('❌ 错误：未配置Telegram Secrets');
-        console.log('   请在仓库 Settings → Secrets 添加：');
-        console.log('   - TELEGRAM_BOT_TOKEN');
-        console.log('   - TELEGRAM_CHAT_ID');
-        process.exit(1);
-    }
-    console.log('✅ Telegram配置正常');
-    
-    // 2. 读取提醒数据
-    let reminders = [];
-    try {
-        const data = fs.readFileSync('reminders.json', 'utf8');
-        reminders = JSON.parse(data);
-        console.log(`📦 加载提醒: ${reminders.length} 个`);
-    } catch (error) {
-        console.log('⚠️ 未找到reminders.json，创建默认数据');
-        reminders = [{
-            id: Date.now(),
-            name: '示例提醒',
-            lastUpdated: getBeijingDate(),
-            nextReminder: getBeijingDate(),
-            days: 1,
-            enabled: true,
-            notified: false,
-            createdAt: new Date().toISOString()
-        }];
-        fs.writeFileSync('reminders.json', JSON.stringify(reminders, null, 2));
-    }
-    
-    // 3. 获取今日日期
-    const today = getBeijingDate();
-    console.log(`📅 今日日期: ${today}`);
-    
-    // 4. 找出今日到期且未完成的项目
-    const dueReminders = reminders.filter(r => {
-        return r.enabled !== false && 
-               r.nextReminder === today;
-    });
-    
-    console.log(`🔔 今日到期: ${dueReminders.length} 个`);
-    
-    // 5. 如果有到期项目，发送提醒
-    if (dueReminders.length > 0) {
-        // 检查3分钟内是否发送过
-        const now = Date.now();
-        const THREE_MINUTES = 3 * 60 * 1000;
-        
-        const needSend = dueReminders.filter(r => {
-            if (!r.lastSentTime) return true;
-            return now - new Date(r.lastSentTime).getTime() > THREE_MINUTES;
-        });
-        
-        if (needSend.length === 0) {
-            console.log('⏸️ 所有项目3分钟内已提醒过，跳过本次');
-            console.log('='.repeat(60));
-            return;
-        }
-        
-        console.log(`📤 本次发送: ${needSend.length} 个`);
-        
-        // 格式化消息
-        let message = '🔔 *定时提醒系统 - 到期通知*\n';
-        message += '═══════════════════════\n';
-        message += `📅 日期：${today}\n`;
-        message += `⏰ 时间：${getBeijingTime()}\n`;
-        message += `⏱️ 频率：每3分钟提醒一次\n\n`;
-        message += `*今日到期项目：*\n\n`;
-        
-        dueReminders.forEach((item, index) => {
-            const nextDate = getNextDate(today, item.days);
-            message += `${index + 1}. *${item.name}*\n`;
-            message += `   • 周期：每 ${item.days} 天\n`;
-            message += `   • 最后更新：${item.lastUpdated}\n`;
-            message += `   • 下次提醒：${nextDate}\n`;
-            message += `   • 状态：⚠️ 等待处理\n\n`;
+          // 主函数
+          async function main() {
+            console.log('📅 今日日期:', getBeijingDate());
             
-            // 更新发送时间
-            item.lastSentTime = new Date().toISOString();
-            item.notified = false;  // 保持未完成状态
-        });
-        
-        message += '═══════════════════════\n';
-        message += '✅ *处理完成后，请点击下方链接更新状态：*\n';
-        message += `[⚙️ 点击这里标记已完成]`;
-        message += `(https://github.com/${process.env.GITHUB_REPOSITORY}/blob/main/README.md)\n\n`;
-        message += '🔄 系统将持续提醒，直到您处理完成';
-        
-        // 发送到Telegram
-        const url = `https://api.telegram.org/bot${token}/sendMessage`;
-        const postData = JSON.stringify({
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'Markdown',
-            disable_web_page_preview: false
-        });
-        
-        try {
-            const response = await new Promise((resolve, reject) => {
-                const req = https.request(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Content-Length': Buffer.byteLength(postData)
-                    }
-                }, (res) => {
-                    let data = '';
-                    res.on('data', chunk => data += chunk);
-                    res.on('end', () => {
-                        try {
-                            resolve(JSON.parse(data));
-                        } catch (e) {
-                            reject(e);
-                        }
-                    });
-                });
-                
-                req.on('error', reject);
-                req.write(postData);
-                req.end();
-            });
-            
-            if (response.ok) {
-                console.log(`✅ 发送成功: ${needSend.length} 条`);
-                // 保存更新时间戳
-                fs.writeFileSync('reminders.json', JSON.stringify(reminders, null, 2));
-                console.log('💾 发送时间已记录');
-            } else {
-                console.log(`❌ 发送失败: ${response.description}`);
+            // 读取提醒数据
+            let reminders = [];
+            try {
+              if (fs.existsSync('reminders.json')) {
+                const data = fs.readFileSync('reminders.json', 'utf8');
+                reminders = JSON.parse(data);
+                console.log(`📦 加载提醒: ${reminders.length} 个`);
+              } else {
+                console.log('📝 提醒文件不存在，创建默认数据');
+                reminders = [{
+                  id: Date.now(),
+                  name: '测试提醒',
+                  lastUpdated: getBeijingDate(),
+                  nextReminder: getBeijingDate(),
+                  days: 1,
+                  enabled: true,
+                  notified: false,
+                  lastSentTime: null
+                }];
+              }
+            } catch (e) {
+              console.error('❌ 读取失败:', e.message);
+              process.exit(1);
             }
-        } catch (error) {
-            console.log(`❌ 请求失败: ${error.message}`);
-        }
-    } else {
-        console.log('ℹ️ 今日无到期项目');
-    }
-    
-    console.log('='.repeat(60));
-    console.log('✨ 检查完成');
-    console.log('='.repeat(60));
-}
 
-// 执行主函数
-main().catch(error => {
-    console.error('❌ 程序错误:', error.message);
-    process.exit(1);
-});
-NODE_SCRIPT
+            const today = getBeijingDate();
+            
+            // 找出今日到期且未完成的项目
+            const dueReminders = reminders.filter(r => 
+              r.enabled !== false && r.nextReminder === today
+            );
 
-          # 执行脚本
-          node reminder.js
-      
-      # 步骤5：提交更新
+            console.log(`🔔 今日到期: ${dueReminders.length} 个`);
+
+            if (dueReminders.length === 0) {
+              console.log('ℹ️ 今日无到期提醒');
+              process.exit(0);
+            }
+
+            // 检查3分钟内是否发送过
+            const now = Date.now();
+            const THREE_MINUTES = 3 * 60 * 1000;
+            
+            const needSend = dueReminders.filter(r => {
+              if (!r.lastSentTime) return true;
+              return now - new Date(r.lastSentTime).getTime() > THREE_MINUTES;
+            });
+
+            if (needSend.length === 0) {
+              console.log('⏸️ 所有项目3分钟内已提醒过，跳过本次');
+              process.exit(0);
+            }
+
+            console.log(`📤 本次发送: ${needSend.length} 个`);
+
+            // 构造消息
+            let message = '🔔 *定时提醒系统*\n';
+            message += '═══════════════════\n';
+            message += `📅 日期：${today}\n`;
+            message += `⏰ 时间：${getBeijingTime()}\n`;
+            message += `⏱️ 频率：每3分钟提醒一次\n\n`;
+            message += `*今日到期项目（${dueReminders.length}项）：*\n\n`;
+
+            dueReminders.forEach((item, index) => {
+              const nextDate = getNextDate(today, item.days);
+              message += `${index + 1}. *${item.name}*\n`;
+              message += `   • 周期：每 ${item.days} 天\n`;
+              message += `   • 最后更新：${item.lastUpdated}\n`;
+              message += `   • 下次提醒：${nextDate}\n`;
+              message += `   • 状态：⚠️ 等待处理\n\n`;
+
+              // 更新发送时间
+              item.lastSentTime = new Date().toISOString();
+              item.notified = false;
+            });
+
+            message += '═══════════════════\n';
+            message += '✅ *处理完成后，请点击下方链接更新状态：*\n';
+            message += `[⚙️ 点击这里管理提醒](https://github.com/${process.env.GITHUB_REPOSITORY}/blob/main/README.md)\n\n`;
+            message += '🔄 系统将持续提醒，直到您点击"设为今天"';
+
+            // 发送到Telegram
+            const token = process.env.TELEGRAM_BOT_TOKEN;
+            const chatId = process.env.TELEGRAM_CHAT_ID;
+            
+            if (!token || !chatId) {
+              console.error('❌ 错误: Secrets未配置');
+              process.exit(1);
+            }
+
+            const url = `https://api.telegram.org/bot${token}/sendMessage`;
+            const postData = JSON.stringify({
+              chat_id: chatId,
+              text: message,
+              parse_mode: 'Markdown',
+              disable_web_page_preview: false
+            });
+
+            return new Promise((resolve, reject) => {
+              const req = https.request(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Content-Length': Buffer.byteLength(postData)
+                }
+              }, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                  try {
+                    const result = JSON.parse(data);
+                    if (result.ok) {
+                      console.log(`✅ 发送成功: ${needSend.length} 条`);
+                      // 保存数据
+                      fs.writeFileSync('reminders.json', JSON.stringify(reminders, null, 2));
+                      console.log('💾 发送时间已记录');
+                      resolve();
+                    } else {
+                      console.error('❌ 发送失败:', result.description);
+                      reject(new Error(result.description));
+                    }
+                  } catch (e) {
+                    reject(e);
+                  }
+                });
+              });
+
+              req.on('error', reject);
+              req.write(postData);
+              req.end();
+            });
+          }
+
+          main().catch(error => {
+            console.error('❌ 程序错误:', error.message);
+            process.exit(1);
+          });
+          EOF
+          
       - name: 💾 保存更改
         run: |
           git config --global user.name "github-actions[bot]"
