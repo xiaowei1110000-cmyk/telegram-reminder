@@ -40,7 +40,7 @@
     "days": 1,
     "createdAt": "2026-02-11T09:09:01.049Z",
     "lastNotified": "2026-02-12T04:08:39.237Z",
-    "notified": true,
+    "notified": false,
     "enabled": true
   }
 ]
