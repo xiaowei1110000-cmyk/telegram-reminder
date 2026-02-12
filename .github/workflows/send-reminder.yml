@@ -7,14 +7,13 @@ const DATA_FILE = path.join(__dirname, '..', 'data', 'reminders.json');
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-// ==================== 精美时间格式化函数（和你网页上一模一样）====================
+// ==================== 精美时间格式化函数 ====================
 
 /**
  * 获取今天的日期字符串（YYYY-MM-DD格式）
  */
 function getTodayDateString() {
     const now = new Date();
-    // 转换为北京时间
     const beijing = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     const year = beijing.getUTCFullYear();
     const month = String(beijing.getUTCMonth() + 1).padStart(2, '0');
@@ -23,12 +22,22 @@ function getTodayDateString() {
 }
 
 /**
- * 格式化日期为中文显示（和你网页上完全一致）
- * 输出：今天、明天、昨天、2月13日(周四) 等格式
+ * 修复日期格式：把带时间的日期转成纯日期
+ */
+function fixDateFormat(dateStr) {
+    if (!dateStr) return dateStr;
+    // 如果是 "2026-02-13T12:05:00.000Z" 这种格式，只取前面的日期部分
+    if (dateStr.includes('T')) {
+        return dateStr.split('T')[0];
+    }
+    return dateStr;
+}
+
+/**
+ * 格式化日期为中文显示
  */
 function formatDate(date) {
     const now = new Date();
-    // 转换为北京时间日期（只比较年月日）
     const beijingNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     const today = new Date(beijingNow.getUTCFullYear(), beijingNow.getUTCMonth(), beijingNow.getUTCDate());
     
@@ -38,7 +47,6 @@ function formatDate(date) {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    // 转换目标日期到北京时间
     const targetDate = new Date(date);
     const beijingTarget = new Date(targetDate.getTime() + 8 * 60 * 60 * 1000);
     const targetDay = new Date(beijingTarget.getUTCFullYear(), beijingTarget.getUTCMonth(), beijingTarget.getUTCDate());
@@ -50,34 +58,12 @@ function formatDate(date) {
     } else if (targetDay.getTime() === tomorrow.getTime()) {
         return '明天';
     } else {
-        // 返回格式：2月13日(周四)
         const month = targetDay.getMonth() + 1;
         const day = targetDay.getDate();
         const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
         const weekday = weekdays[targetDay.getDay()];
         return `${month}月${day}日(${weekday})`;
     }
-}
-
-/**
- * 计算进度百分比（和你网页上一模一样）
- */
-function calculateProgress(lastDate, nextDate, currentDate) {
-    const last = new Date(lastDate);
-    const next = new Date(nextDate);
-    const current = new Date(currentDate);
-    
-    const lastDay = new Date(last.getFullYear(), last.getMonth(), last.getDate());
-    const nextDay = new Date(next.getFullYear(), next.getMonth(), next.getDate());
-    const currentDay = new Date(current.getFullYear(), current.getMonth(), current.getDate());
-    
-    const totalMs = nextDay - lastDay;
-    const elapsedMs = currentDay - lastDay;
-    
-    let progress = (elapsedMs / totalMs) * 100;
-    progress = Math.min(100, Math.max(0, progress));
-    
-    return Math.round(progress);
 }
 
 /**
@@ -91,7 +77,7 @@ function calculateNextReminderDate(lastDate, intervalDays) {
 }
 
 /**
- * 发送Telegram消息（精美格式版）
+ * 发送Telegram消息
  */
 function sendTelegramMessage(message) {
     return new Promise((resolve) => {
@@ -104,7 +90,7 @@ function sendTelegramMessage(message) {
         const data = JSON.stringify({
             chat_id: CHAT_ID,
             text: message,
-            parse_mode: 'HTML',  // 启用HTML格式
+            parse_mode: 'HTML',
             disable_web_page_preview: true
         });
 
@@ -141,40 +127,53 @@ function sendTelegramMessage(message) {
 
 async function main() {
     console.log('='.repeat(50));
-    console.log('🚀 Telegram定时提醒系统 (精美格式版)');
+    console.log('🚀 Telegram定时提醒系统 (日期自动修复版)');
     console.log('='.repeat(50));
     
     const today = getTodayDateString();
     const todayDate = new Date(today);
     console.log(`📅 北京时间: ${today} (${formatDate(todayDate)})`);
-    console.log(`🤖 Bot Token: ${TOKEN ? '已配置' : '未配置'}`);
-    console.log(`👤 Chat ID: ${CHAT_ID ? '已配置' : '未配置'}`);
     
     // 1. 读取提醒数据
     let reminders = [];
     try {
-        // 尝试读取根目录的 reminders.json
         const rootFile = path.join(__dirname, '..', 'reminders.json');
         if (fs.existsSync(rootFile)) {
             reminders = JSON.parse(fs.readFileSync(rootFile, 'utf8'));
             console.log(`📖 已加载 ${reminders.length} 个提醒`);
             
-            // 确保每个提醒都有必要的字段
+            // 🔥 关键修复：把所有带时间的日期改成纯日期
+            let fixedCount = 0;
             reminders.forEach(r => {
+                // 修复 nextReminder
+                if (r.nextReminder && r.nextReminder.includes('T')) {
+                    r.nextReminder = fixDateFormat(r.nextReminder);
+                    fixedCount++;
+                }
+                // 修复 lastUpdated
+                if (r.lastUpdated && r.lastUpdated.includes('T')) {
+                    r.lastUpdated = fixDateFormat(r.lastUpdated);
+                    fixedCount++;
+                }
                 if (!r.nextReminder) {
                     const nextDate = calculateNextReminderDate(r.lastUpdated, r.days);
                     r.nextReminder = nextDate.toISOString().split('T')[0];
+                    fixedCount++;
                 }
                 if (r.enabled === undefined) r.enabled = true;
             });
+            
+            if (fixedCount > 0) {
+                console.log(`🔧 已自动修复 ${fixedCount} 个日期格式`);
+            }
         } else {
-            // 创建默认数据
+            // 创建默认数据（纯日期格式）
             reminders = [
                 { 
                     id: Date.now(), 
                     name: "网宿IP更新", 
-                    lastUpdated: "2026-02-12", 
-                    nextReminder: "2026-02-12", 
+                    lastUpdated: today, 
+                    nextReminder: today, 
                     days: 3, 
                     enabled: true,
                     createdAt: new Date().toISOString()
@@ -196,13 +195,12 @@ async function main() {
         reminders = [];
     }
     
-    // 2. 筛选今日到期提醒
+    // 2. 筛选今日到期提醒（现在格式统一了）
     const dueReminders = reminders.filter(r => r.enabled !== false && r.nextReminder === today);
     console.log(`🔍 今日到期提醒: ${dueReminders.length} 个`);
     
-    // 3. 发送提醒（精美格式）
+    // 3. 发送提醒
     if (dueReminders.length > 0) {
-        // ========== 精美消息模板（和你网页风格一致） ==========
         let message = `📢 <b>每日定时提醒 · ${formatDate(todayDate)}</b>\n\n`;
         message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
         
@@ -210,19 +208,12 @@ async function main() {
             const lastDate = new Date(r.lastUpdated);
             const nextDate = calculateNextReminderDate(r.lastUpdated, r.days);
             const nextNextDate = calculateNextReminderDate(r.lastUpdated, r.days * 2);
-            const progress = calculateProgress(r.lastUpdated, r.nextReminder, today);
-            
-            // 进度条表情
-            let progressEmoji = '🟩';
-            if (progress >= 100) progressEmoji = '✅';
-            else if (progress >= 90) progressEmoji = '⚠️';
-            else if (progress >= 50) progressEmoji = '🟨';
             
             message += `<b>${index + 1}. ${r.name}</b>\n`;
             message += `   📅 上次更新: ${formatDate(lastDate)}\n`;
             message += `   ⏰ 下次提醒: ${formatDate(nextDate)}\n`;
             message += `   🔄 下下次: ${formatDate(nextNextDate)}\n`;
-            message += `   📊 间隔: ${r.days}天  ${progressEmoji} ${progress}%\n\n`;
+            message += `   📊 间隔: ${r.days}天\n\n`;
         });
         
         message += `━━━━━━━━━━━━━━━━━━━━\n`;
@@ -232,47 +223,35 @@ async function main() {
         const success = await sendTelegramMessage(message);
         
         if (success) {
-            // 更新提醒日期
             dueReminders.forEach(r => {
                 r.lastUpdated = today;
                 const nextDate = calculateNextReminderDate(today, r.days);
-                r.nextReminder = nextDate.toISOString().split('T')[0];
+                r.nextReminder = nextDate.toISOString().split('T')[0];  // ✅ 保存纯日期
                 r.lastNotified = new Date().toISOString();
             });
             console.log('✅ 已更新下次提醒日期');
         }
     } else {
         console.log('ℹ️ 今日无到期提醒');
-        
-        // 精美心跳消息（每周三发送一次）
-        const dayOfWeek = new Date().getDay();
-        if (dayOfWeek === 3) {  // 周三
-            await sendTelegramMessage(
-                `💓 <b>系统心跳</b> · ${formatDate(todayDate)}\n\n` +
-                `━━━━━━━━━━━━━━━━━━━━\n\n` +
-                `✅ 系统运行正常\n` +
-                `📊 今日无到期提醒\n` +
-                `📝 当前提醒总数: ${reminders.length} 个\n\n` +
-                `━━━━━━━━━━━━━━━━━━━━\n` +
-                `⚡ 下次检查: 明天 11:00`
-            );
-        }
     }
     
-    // 4. 保存数据
+    // 4. 保存数据（强制使用纯日期格式）
     try {
-        // 创建data目录
         const dataDir = path.join(__dirname, '..', 'data');
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true });
         }
         
-        // 保存到 data/reminders.json
+        // 保存前再确保一次所有日期都是纯格式
+        reminders.forEach(r => {
+            if (r.nextReminder) r.nextReminder = fixDateFormat(r.nextReminder);
+            if (r.lastUpdated) r.lastUpdated = fixDateFormat(r.lastUpdated);
+        });
+        
         fs.writeFileSync(path.join(dataDir, 'reminders.json'), JSON.stringify(reminders, null, 2), 'utf8');
-        // 保存到根目录
         fs.writeFileSync(path.join(__dirname, '..', 'reminders.json'), JSON.stringify(reminders, null, 2), 'utf8');
         
-        console.log('💾 数据已保存');
+        console.log('💾 数据已保存（纯日期格式）');
     } catch (e) {
         console.error('❌ 保存失败:', e.message);
     }
@@ -282,7 +261,6 @@ async function main() {
     console.log('='.repeat(50));
 }
 
-// 启动
 main().catch(error => {
     console.error('❌ 程序异常:', error);
     process.exit(1);
