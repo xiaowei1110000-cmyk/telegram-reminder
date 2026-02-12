@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub定时提醒系统 · 完整版</title>
+    <title>GitHub定时提醒系统 · 安全版</title>
     <style>
         /* ========== 全局样式 ========== */
         * {
@@ -234,6 +234,11 @@
         .btn-success {
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
         }
 
         .btn-warning {
@@ -500,7 +505,7 @@
             </div>
         </div>
 
-        <!-- ========== GitHub配置卡片 ========== -->
+        <!-- ========== GitHub配置卡片（安全版-无硬编码Token）========== -->
         <div class="card">
             <div class="card-header">
                 <i class="fab fa-github"></i>
@@ -527,9 +532,17 @@
                         <i class="fas fa-key"></i> Token
                     </div>
                     <div>
-                        <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxx（不需要填，留空）" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;" disabled>
-                        <div style="color: #34d399; font-size: 0.8rem; margin-top: 6px;">
-                            <i class="fas fa-check-circle"></i> 使用GitHub Actions自动保存，无需Token
+                        <div style="display: flex; gap: 8px;">
+                            <input type="password" id="githubToken" value="" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
+                            <button class="btn btn-success" onclick="saveGitHubConfig()" style="white-space: nowrap;">
+                                <i class="fas fa-save"></i> 保存Token
+                            </button>
+                        </div>
+                        <div style="color: #fbbf24; font-size: 0.8rem; margin-top: 6px;">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>必填！</strong> 需要repo权限的Token，
+                            <a href="https://github.com/settings/tokens" target="_blank" style="color: #60a5fa;">点击这里创建</a>，
+                            创建后粘贴到上方输入框
                         </div>
                     </div>
                 </div>
@@ -561,9 +574,9 @@
                     <div style="color: #94a3b8; font-size: 0.85rem;" id="syncTime">最后同步: 从未</div>
                 </div>
                 <div>
-                    <span class="badge badge-success" id="autoSaveBadge">
-                        <i class="fas fa-robot"></i>
-                        自动保存已启用
+                    <span class="badge badge-warning" id="tokenStatus">
+                        <i class="fas fa-key"></i>
+                        Token未配置
                     </span>
                 </div>
             </div>
@@ -637,7 +650,7 @@
     <script>
         // ==================== GitHub API 类 ====================
         class GitHubAPI {
-            constructor(username, repo, token = null) {
+            constructor(username, repo, token) {
                 this.username = username;
                 this.repo = repo;
                 this.token = token;
@@ -649,13 +662,9 @@
                 try {
                     const url = `${this.baseUrl}/contents/reminders.json`;
                     const headers = {
-                        'Accept': 'application/vnd.github.v3+json'
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Authorization': `token ${this.token}`
                     };
-                    
-                    // 如果有token则使用（但我们现在不需要）
-                    if (this.token) {
-                        headers['Authorization'] = `token ${this.token}`;
-                    }
 
                     const response = await fetch(url, { headers });
                     
@@ -664,7 +673,8 @@
                     }
                     
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                        const error = await response.json();
+                        throw new Error(error.message || `HTTP ${response.status}`);
                     }
 
                     const data = await response.json();
@@ -713,7 +723,8 @@
                     const url = `${this.baseUrl}/contents/reminders.json`;
                     const headers = {
                         'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `token ${this.token}`
                     };
 
                     const body = {
@@ -754,7 +765,8 @@
                     const url = `${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`;
                     const headers = {
                         'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `token ${this.token}`
                     };
 
                     const body = {
@@ -794,25 +806,42 @@
             const todayStr = today.toISOString().split('T')[0];
             document.getElementById('lastUpdated').value = todayStr;
             
-            // 初始化GitHub API
-            const username = document.getElementById('githubUsername').value;
-            const repo = document.getElementById('githubRepo').value;
-            githubAPI = new GitHubAPI(username, repo);
+            // 从 localStorage 加载保存的配置
+            const savedUsername = localStorage.getItem('github_username') || 'xiaowei1110000-cmyk';
+            const savedRepo = localStorage.getItem('github_repo') || 'telegram-reminder';
+            const savedToken = localStorage.getItem('github_token');
             
-            // 尝试从GitHub加载数据
-            await loadFromGitHub();
+            document.getElementById('githubUsername').value = savedUsername;
+            document.getElementById('githubRepo').value = savedRepo;
             
-            // 更新同步状态
-            updateSyncStatus('success', '已连接到GitHub');
+            // 如果有保存的Token，自动填入
+            if (savedToken) {
+                document.getElementById('githubToken').value = savedToken;
+                document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-key"></i> Token已配置';
+                document.getElementById('tokenStatus').className = 'badge badge-success';
+                
+                // 初始化API
+                githubAPI = new GitHubAPI(savedUsername, savedRepo, savedToken);
+                
+                // 从GitHub加载数据
+                await loadFromGitHub();
+            } else {
+                updateSyncStatus('error', '请先配置Token', '未配置');
+                showNotification('⚠️ 请先配置GitHub Token', 'warning');
+            }
             
             // 渲染列表
             renderReminders();
-            
-            showNotification('系统已启动，数据已从GitHub加载', 'success');
         });
 
         // ==================== GitHub同步函数 ====================
         async function syncToGitHub() {
+            // 检查是否已配置Token
+            if (!githubAPI) {
+                showNotification('❌ 请先配置并保存Token', 'error');
+                return;
+            }
+            
             try {
                 updateSyncStatus('syncing', '正在保存到GitHub...');
                 
@@ -830,6 +859,7 @@
                     
                     // 触发Actions运行
                     await githubAPI.triggerActions();
+                    showNotification('⏰ 已触发GitHub Actions，3分钟内会收到提醒', 'info');
                 } else {
                     throw new Error(result.error);
                 }
@@ -840,6 +870,12 @@
         }
 
         async function loadFromGitHub() {
+            // 检查是否已配置Token
+            if (!githubAPI) {
+                updateSyncStatus('error', '请先配置Token', '未配置');
+                return;
+            }
+            
             try {
                 updateSyncStatus('syncing', '正在从GitHub加载...');
                 
@@ -857,23 +893,55 @@
                     } catch (e) {
                         console.error('JSON解析失败:', e);
                         showNotification('⚠️ GitHub文件格式错误，使用本地数据', 'warning');
+                        createDefaultReminders();
                     }
                 } else {
-                    updateSyncStatus('success', 'GitHub无数据，使用本地', '首次运行');
+                    updateSyncStatus('success', 'GitHub无数据', '首次运行');
                     showNotification('ℹ️ GitHub上无数据文件，将创建新文件', 'info');
+                    createDefaultReminders();
                 }
             } catch (error) {
                 updateSyncStatus('error', '加载失败', error.message);
                 showNotification('❌ 加载失败: ' + error.message, 'error');
-            }
-            
-            // 无论成功失败，都确保有默认数据
-            if (!reminders || reminders.length === 0) {
                 createDefaultReminders();
             }
         }
 
+        // 保存GitHub配置
+        function saveGitHubConfig() {
+            const username = document.getElementById('githubUsername').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
+            const token = document.getElementById('githubToken').value.trim();
+            
+            if (!username || !repo || !token) {
+                showNotification('请完整填写用户名、仓库名和Token', 'error');
+                return;
+            }
+            
+            // 保存到 localStorage
+            localStorage.setItem('github_username', username);
+            localStorage.setItem('github_repo', repo);
+            localStorage.setItem('github_token', token);
+            
+            // 重新初始化API
+            githubAPI = new GitHubAPI(username, repo, token);
+            
+            // 更新UI
+            document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-key"></i> Token已配置';
+            document.getElementById('tokenStatus').className = 'badge badge-success';
+            
+            showNotification('✅ GitHub配置已保存', 'success');
+            
+            // 测试连接
+            setTimeout(() => loadFromGitHub(), 500);
+        }
+
         async function checkActionsStatus() {
+            if (!githubAPI) {
+                showNotification('❌ 请先配置Token', 'error');
+                return;
+            }
+            
             showNotification('⏳ 正在触发GitHub Actions...', 'info');
             const result = await githubAPI.triggerActions();
             if (result.success) {
@@ -1024,7 +1092,7 @@
             reminders = [
                 {
                     id: Date.now(),
-                    name: '📝 示例提醒 - 网宿IP更新',
+                    name: '📝 网宿IP更新',
                     lastUpdated: todayStr,
                     nextReminder: todayStr,
                     days: 3,
