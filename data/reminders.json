@@ -33,14 +33,14 @@
     "enabled": true
   },
   {
-    "id": 1770869507701,
+    "id": 1770873209852,
     "name": "111",
     "lastUpdated": "2026-02-12",
     "nextReminder": "2026-02-13",
     "days": 1,
-    "createdAt": "2026-02-12T04:11:47.701Z",
-    "lastNotified": "2026-02-12T04:47:39.438Z",
-    "notified": true,
+    "createdAt": "2026-02-12T05:13:29.852Z",
+    "lastNotified": "2026-02-12T05:13:50.660Z",
+    "notified": false,
     "enabled": true
   }
 ]
