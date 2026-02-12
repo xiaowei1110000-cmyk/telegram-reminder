@@ -3,444 +3,579 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>定时提醒系统 · 管理后台</title>
+    <title>GitHub定时提醒系统 · 完整版</title>
     <style>
+        /* ========== 全局样式 ========== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+            font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #0b1120 0%, #1a2635 100%);
+            background: linear-gradient(135deg, #0a0f1c 0%, #141b2b 100%);
             color: #e2e8f0;
             min-height: 100vh;
             padding: 24px;
         }
-        
+
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
-        
-        header {
-            text-align: center;
-            margin-bottom: 32px;
-            padding: 24px;
-            background: rgba(30, 41, 59, 0.5);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
+
+        /* ========== 头部 ========== */
+        .header {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
             border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 28px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
-        
+
         h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, #60a5fa, #34d399);
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, #60a5fa, #34d399, #fbbf24);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
+            gap: 16px;
+            margin-bottom: 12px;
         }
-        
+
         .subtitle {
             color: #94a3b8;
-            font-size: 1rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        
+
+        /* ========== 状态徽章 ========== */
         .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-left: 8px;
+            gap: 8px;
         }
-        
-        .badge-warning {
-            background: rgba(245, 158, 11, 0.2);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-        
+
         .badge-success {
-            background: rgba(16, 185, 129, 0.2);
+            background: rgba(16, 185, 129, 0.15);
             color: #34d399;
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
-        
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* ========== 卡片 ========== */
         .card {
             background: #1e293b;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 28px;
             border: 1px solid #334155;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s;
         }
-        
+
+        .card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 12px 36px rgba(59, 130, 246, 0.1);
+        }
+
         .card-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 16px;
+            margin-bottom: 24px;
             padding-bottom: 16px;
             border-bottom: 1px solid #334155;
         }
-        
+
         .card-header i {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             color: #60a5fa;
+            background: rgba(59, 130, 246, 0.1);
+            padding: 12px;
+            border-radius: 14px;
         }
-        
+
         h2 {
-            font-size: 1.25rem;
+            font-size: 1.4rem;
             font-weight: 600;
             color: #f1f5f9;
         }
-        
+
+        /* ========== 统计卡片 ========== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #60a5fa;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-desc {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+
+        /* ========== 表单 ========== */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 20px;
+            margin-bottom: 20px;
         }
-        
+
         .form-group {
             display: flex;
             flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
             gap: 6px;
         }
-        
-        .form-group label {
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        
+
         .form-group input {
-            padding: 10px 12px;
             background: #0f172a;
             border: 1px solid #334155;
-            border-radius: 8px;
+            border-radius: 12px;
+            padding: 12px 16px;
             color: #f1f5f9;
             font-size: 0.95rem;
             transition: all 0.2s;
         }
-        
+
         .form-group input:focus {
             outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         }
-        
+
         .form-group input::placeholder {
             color: #64748b;
         }
-        
+
+        /* ========== 按钮 ========== */
         .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 12px 24px;
+            border-radius: 12px;
             border: none;
             font-size: 0.95rem;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
             transition: all 0.2s;
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
         }
-        
+
         .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
         }
-        
+
         .btn-success {
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
         }
-        
+
         .btn-warning {
             background: linear-gradient(135deg, #f59e0b, #d97706);
             color: white;
         }
-        
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
         .btn-outline {
             background: transparent;
             border: 1px solid #475569;
             color: #e2e8f0;
         }
-        
+
         .btn-outline:hover {
             border-color: #3b82f6;
-            color: #3b82f6;
+            color: #60a5fa;
+            background: rgba(59, 130, 246, 0.05);
         }
-        
-        .reminder-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
             margin-top: 16px;
         }
-        
+
+        /* ========== GitHub配置卡片 ========== */
+        .github-config {
+            background: #0f172a;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: #1e293b;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .sync-indicator.success {
+            background: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+
+        .sync-indicator.error {
+            background: #ef4444;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+
+        .sync-indicator.syncing {
+            background: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ========== 提醒卡片 ========== */
+        .reminder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
         .reminder-card {
             background: #0f172a;
-            border-radius: 12px;
-            padding: 18px;
+            border-radius: 16px;
+            padding: 20px;
             border: 1px solid #334155;
             transition: all 0.2s;
             position: relative;
         }
-        
+
         .reminder-card:hover {
             border-color: #3b82f6;
             transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
         }
-        
+
         .reminder-card.due {
             border-left: 4px solid #ef4444;
-            background: linear-gradient(to right, #0f172a, #1a1e2c);
+            background: linear-gradient(to right, #0f172a, #1a1f2e);
         }
-        
+
         .reminder-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
-        
+
         .reminder-name {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 600;
             color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
-        .reminder-id {
-            font-size: 0.7rem;
-            color: #64748b;
-            margin-top: 4px;
-        }
-        
+
         .reminder-meta {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 16px;
             margin-bottom: 16px;
-            font-size: 0.85rem;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
         }
-        
+
         .meta-label {
             color: #94a3b8;
-            margin-bottom: 2px;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
         }
-        
+
         .meta-value {
             color: #e2e8f0;
+            font-size: 0.95rem;
             font-weight: 500;
         }
-        
+
         .meta-value.due {
-            color: #ef4444;
+            color: #f87171;
             font-weight: 600;
         }
-        
-        .meta-value.warning {
-            color: #f59e0b;
-        }
-        
+
         .reminder-actions {
             display: flex;
             gap: 8px;
             margin-top: 16px;
         }
-        
+
         .reminder-actions button {
             flex: 1;
             padding: 8px;
             font-size: 0.8rem;
         }
-        
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 16px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            gap: 4px;
-        }
-        
-        .status-due {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 8px;
-        }
-        
-        .stat-card {
-            background: #0f172a;
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #60a5fa;
-            line-height: 1.2;
-        }
-        
-        .stat-label {
-            font-size: 0.8rem;
-            color: #94a3b8;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 48px 24px;
-            color: #64748b;
-        }
-        
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 16px;
-            padding: 12px;
-            background: #0f172a;
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-        
-        .sync-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-        }
-        
-        .notification {
+
+        /* ========== 通知 ========== */
+        #notificationArea {
             position: fixed;
             top: 24px;
             right: 24px;
-            padding: 16px 24px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+
+        .notification {
             background: #1e293b;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin-bottom: 12px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             transform: translateX(120%);
-            transition: transform 0.3s;
-            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             border-left: 4px solid;
         }
-        
+
         .notification.show {
             transform: translateX(0);
         }
-        
+
         .notification.success {
             border-left-color: #10b981;
         }
-        
+
         .notification.error {
             border-left-color: #ef4444;
         }
-        
+
         .notification.warning {
             border-left-color: #f59e0b;
         }
-        
+
+        .notification.info {
+            border-left-color: #3b82f6;
+        }
+
+        .notification i {
+            font-size: 1.3rem;
+        }
+
+        /* ========== 响应式 ========== */
         @media (max-width: 768px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .reminder-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .container {
-                padding: 8px;
-            }
-            
-            h1 {
-                font-size: 1.8rem;
-            }
+            body { padding: 16px; }
+            h1 { font-size: 1.8rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+            .reminder-grid { grid-template-columns: 1fr; }
+            .btn-group { flex-direction: column; }
+            .btn-group .btn { width: 100%; }
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <header>
+        <!-- ========== 头部 ========== -->
+        <div class="header">
             <h1>
                 <i class="fas fa-bell"></i>
-                定时提醒系统
-                <span class="badge badge-success">每3分钟提醒</span>
+                GitHub定时提醒系统
+                <span class="badge badge-success" id="systemStatusBadge">
+                    <i class="fas fa-check-circle"></i>
+                    自动化运行中
+                </span>
             </h1>
-            <p class="subtitle">
+            <div class="subtitle">
                 <i class="fas fa-clock"></i>
-                项目到期后每3分钟发送一次Telegram提醒 · 云端自动运行 · 永不间断
-            </p>
-        </header>
-        
-        <!-- 统计卡片 -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="totalCount">0</div>
-                <div class="stat-label">总提醒数</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="dueCount">0</div>
-                <div class="stat-label">今日到期</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="activeCount">0</div>
-                <div class="stat-label">进行中</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="intervalValue">3</div>
-                <div class="stat-label">提醒频率(分钟)</div>
+                每3分钟检查一次 · 到期持续提醒 · 云端永久运行
+                <span style="margin-left: auto; background: rgba(59,130,246,0.1); padding: 6px 14px; border-radius: 30px;">
+                    <i class="fas fa-github"></i>
+                    GitHub Actions
+                </span>
             </div>
         </div>
-        
-        <!-- 添加提醒卡片 -->
+
+        <!-- ========== 统计卡片 ========== -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">总提醒数</div>
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-desc">所有启用项目</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">今日到期</div>
+                <div class="stat-value" id="statDue">0</div>
+                <div class="stat-desc">需要立即处理</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">进行中</div>
+                <div class="stat-value" id="statActive">0</div>
+                <div class="stat-desc">未到期项目</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">提醒频率</div>
+                <div class="stat-value">3</div>
+                <div class="stat-desc">分钟/次</div>
+            </div>
+        </div>
+
+        <!-- ========== GitHub配置卡片 ========== -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fab fa-github"></i>
+                <h2>GitHub 自动同步配置</h2>
+            </div>
+            
+            <div class="github-config">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; align-items: center;">
+                    <div style="color: #94a3b8;">
+                        <i class="fas fa-user"></i> 用户名
+                    </div>
+                    <div>
+                        <input type="text" id="githubUsername" value="xiaowei1110000-cmyk" placeholder="GitHub用户名" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
+                    </div>
+                    
+                    <div style="color: #94a3b8;">
+                        <i class="fas fa-code-branch"></i> 仓库名
+                    </div>
+                    <div>
+                        <input type="text" id="githubRepo" value="telegram-reminder" placeholder="仓库名称" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
+                    </div>
+                    
+                    <div style="color: #94a3b8;">
+                        <i class="fas fa-key"></i> Token
+                    </div>
+                    <div>
+                        <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxx（不需要填，留空）" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;" disabled>
+                        <div style="color: #34d399; font-size: 0.8rem; margin-top: 6px;">
+                            <i class="fas fa-check-circle"></i> 使用GitHub Actions自动保存，无需Token
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="syncToGitHub()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    立即保存到GitHub
+                </button>
+                <button class="btn btn-primary" onclick="loadFromGitHub()">
+                    <i class="fas fa-cloud-download-alt"></i>
+                    从GitHub加载数据
+                </button>
+                <button class="btn btn-outline" onclick="checkActionsStatus()">
+                    <i class="fas fa-play-circle"></i>
+                    触发手动检查
+                </button>
+                <button class="btn btn-outline" onclick="exportLocalFile()">
+                    <i class="fas fa-download"></i>
+                    导出备份
+                </button>
+            </div>
+
+            <div class="sync-status" id="syncStatus">
+                <div class="sync-indicator" id="syncIndicator"></div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; margin-bottom: 4px;" id="syncText">同步状态: 未连接</div>
+                    <div style="color: #94a3b8; font-size: 0.85rem;" id="syncTime">最后同步: 从未</div>
+                </div>
+                <div>
+                    <span class="badge badge-success" id="autoSaveBadge">
+                        <i class="fas fa-robot"></i>
+                        自动保存已启用
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 添加提醒卡片 ========== -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-plus-circle"></i>
                 <h2>新建提醒</h2>
             </div>
-            
+
             <div class="form-grid">
                 <div class="form-group">
                     <label><i class="fas fa-tag"></i> 提醒名称</label>
@@ -449,7 +584,7 @@
                 
                 <div class="form-group">
                     <label><i class="fas fa-calendar"></i> 最后更新</label>
-                    <input type="date" id="lastUpdated" value="2026-02-14">
+                    <input type="date" id="lastUpdated">
                 </div>
                 
                 <div class="form-group">
@@ -457,226 +592,299 @@
                     <input type="number" id="reminderDays" value="3" min="1" max="365">
                 </div>
             </div>
-            
-            <div style="display: flex; gap: 12px; margin-top: 8px;">
-                <button class="btn btn-primary" onclick="addReminder()">
-                    <i class="fas fa-plus"></i> 添加提醒
+
+            <div style="display: flex; gap: 16px;">
+                <button class="btn btn-primary" onclick="addReminder()" style="padding: 14px 32px;">
+                    <i class="fas fa-plus"></i>
+                    添加提醒
                 </button>
-                <button class="btn btn-outline" onclick="exportReminders()">
-                    <i class="fas fa-download"></i> 导出JSON
+                <button class="btn btn-outline" onclick="clearForm()">
+                    <i class="fas fa-eraser"></i>
+                    清空表单
                 </button>
-                <button class="btn btn-outline" onclick="loadFromFile()">
-                    <i class="fas fa-upload"></i> 导入JSON
-                </button>
-            </div>
-            
-            <div class="sync-status">
-                <div class="sync-indicator"></div>
-                <span><strong>自动化状态：</strong> GitHub Actions 每3分钟运行一次 · 无需手动保存</span>
             </div>
         </div>
-        
-        <!-- 提醒列表卡片 -->
+
+        <!-- ========== 提醒列表卡片 ========== -->
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-list"></i>
+                <i class="fas fa-list-check"></i>
                 <h2>提醒列表</h2>
-                <span style="margin-left: auto; color: #94a3b8; font-size: 0.85rem;">
-                    <i class="fas fa-info-circle"></i>
-                    红色边框 = 今日到期
-                </span>
+                <div style="margin-left: auto; display: flex; gap: 12px;">
+                    <span class="badge badge-warning" id="dueBadge">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="dueCount">0</span> 个今日到期
+                    </span>
+                </div>
             </div>
-            
+
             <div id="reminderList" class="reminder-grid">
                 <!-- 动态渲染提醒列表 -->
             </div>
-            
-            <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
-                <button class="btn btn-warning" onclick="testReminder()">
-                    <i class="fas fa-paper-plane"></i> 发送测试提醒
-                </button>
-                <button class="btn btn-outline" onclick="refreshData()">
-                    <i class="fas fa-sync-alt"></i> 刷新列表
+
+            <div class="btn-group" style="margin-top: 24px; justify-content: flex-end;">
+                <button class="btn btn-danger" onclick="clearAllReminders()">
+                    <i class="fas fa-trash-alt"></i>
+                    清空所有
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- ========== 通知区域 ========== -->
+    <div id="notificationArea"></div>
+
     <script>
+        // ==================== GitHub API 类 ====================
+        class GitHubAPI {
+            constructor(username, repo, token = null) {
+                this.username = username;
+                this.repo = repo;
+                this.token = token;
+                this.baseUrl = `https://api.github.com/repos/${username}/${repo}`;
+            }
+
+            // 获取reminders.json文件内容
+            async getRemindersFile() {
+                try {
+                    const url = `${this.baseUrl}/contents/reminders.json`;
+                    const headers = {
+                        'Accept': 'application/vnd.github.v3+json'
+                    };
+                    
+                    // 如果有token则使用（但我们现在不需要）
+                    if (this.token) {
+                        headers['Authorization'] = `token ${this.token}`;
+                    }
+
+                    const response = await fetch(url, { headers });
+                    
+                    if (response.status === 404) {
+                        return { success: false, exists: false };
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    // 解码Base64内容
+                    let content = '';
+                    try {
+                        content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+                    } catch (e) {
+                        content = atob(data.content.replace(/\n/g, ''));
+                    }
+
+                    return {
+                        success: true,
+                        exists: true,
+                        content: content,
+                        sha: data.sha,
+                        url: data.html_url
+                    };
+                } catch (error) {
+                    console.error('GitHub读取失败:', error);
+                    return { 
+                        success: false, 
+                        error: error.message 
+                    };
+                }
+            }
+
+            // 更新reminders.json文件
+            async updateRemindersFile(content, sha = null) {
+                try {
+                    // 如果没有sha，先获取一次
+                    if (!sha) {
+                        const fileInfo = await this.getRemindersFile();
+                        sha = fileInfo.sha;
+                    }
+
+                    // 编码内容为Base64
+                    let encodedContent = '';
+                    try {
+                        encodedContent = btoa(unescape(encodeURIComponent(content)));
+                    } catch (e) {
+                        encodedContent = btoa(content);
+                    }
+
+                    const url = `${this.baseUrl}/contents/reminders.json`;
+                    const headers = {
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    };
+
+                    const body = {
+                        message: '📅 手动更新提醒数据 [网页端]',
+                        content: encodedContent,
+                        sha: sha || undefined
+                    };
+
+                    const response = await fetch(url, {
+                        method: 'PUT',
+                        headers: headers,
+                        body: JSON.stringify(body)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || '更新失败');
+                    }
+
+                    const result = await response.json();
+                    return {
+                        success: true,
+                        sha: result.content.sha,
+                        url: result.content.html_url
+                    };
+                } catch (error) {
+                    console.error('GitHub保存失败:', error);
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+
+            // 触发GitHub Actions手动运行
+            async triggerActions() {
+                try {
+                    const url = `${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`;
+                    const headers = {
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    };
+
+                    const body = {
+                        ref: 'main'
+                    };
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(body)
+                    });
+
+                    return {
+                        success: response.status === 204,
+                        status: response.status
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+        }
+
         // ==================== 全局变量 ====================
         let reminders = [];
-        let isLoading = false;
-        
+        let githubAPI = null;
+        let lastSyncTime = null;
+        let currentSHA = null;
+
         // ==================== 初始化 ====================
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadReminders();
-            setupEventListeners();
-            showNotification('系统已启动，每3分钟自动检查提醒', 'info');
+            // 设置默认日期
+            const today = new Date();
+            today.setHours(today.getHours() + 8);
+            const todayStr = today.toISOString().split('T')[0];
+            document.getElementById('lastUpdated').value = todayStr;
+            
+            // 初始化GitHub API
+            const username = document.getElementById('githubUsername').value;
+            const repo = document.getElementById('githubRepo').value;
+            githubAPI = new GitHubAPI(username, repo);
+            
+            // 尝试从GitHub加载数据
+            await loadFromGitHub();
+            
+            // 更新同步状态
+            updateSyncStatus('success', '已连接到GitHub');
+            
+            // 渲染列表
+            renderReminders();
+            
+            showNotification('系统已启动，数据已从GitHub加载', 'success');
         });
-        
-        // ==================== 数据操作 ====================
-        async function loadReminders() {
+
+        // ==================== GitHub同步函数 ====================
+        async function syncToGitHub() {
             try {
-                const response = await fetch('reminders.json?t=' + Date.now());
-                if (!response.ok) throw new Error('加载失败');
-                reminders = await response.json();
+                updateSyncStatus('syncing', '正在保存到GitHub...');
                 
-                // 兼容旧数据
-                reminders = reminders.map(r => ({
-                    ...r,
-                    enabled: r.enabled !== false,
-                    notified: r.notified || false,
-                    lastSentTime: r.lastSentTime || null
-                }));
+                // 准备数据
+                const content = JSON.stringify(reminders, null, 2);
                 
-                renderReminders();
-                updateStats();
+                // 保存到GitHub
+                const result = await githubAPI.updateRemindersFile(content, currentSHA);
+                
+                if (result.success) {
+                    currentSHA = result.sha;
+                    lastSyncTime = new Date();
+                    updateSyncStatus('success', '同步成功', formatTime(lastSyncTime));
+                    showNotification('✅ 已成功保存到GitHub', 'success');
+                    
+                    // 触发Actions运行
+                    await githubAPI.triggerActions();
+                } else {
+                    throw new Error(result.error);
+                }
             } catch (error) {
-                console.error('加载失败:', error);
-                // 使用默认数据
-                reminders = [
-                    {
-                        id: 1739520000001,
-                        name: '测试提醒 - 每3分钟提醒一次',
-                        lastUpdated: '2026-02-14',
-                        nextReminder: '2026-02-14',
-                        days: 1,
-                        createdAt: new Date().toISOString(),
-                        enabled: true,
-                        notified: false,
-                        lastSentTime: null
+                updateSyncStatus('error', '同步失败', error.message);
+                showNotification('❌ 保存失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadFromGitHub() {
+            try {
+                updateSyncStatus('syncing', '正在从GitHub加载...');
+                
+                const result = await githubAPI.getRemindersFile();
+                
+                if (result.success && result.exists) {
+                    try {
+                        const data = JSON.parse(result.content);
+                        reminders = data;
+                        currentSHA = result.sha;
+                        lastSyncTime = new Date();
+                        updateSyncStatus('success', '加载成功', formatTime(lastSyncTime));
+                        renderReminders();
+                        showNotification(`✅ 已从GitHub加载 ${reminders.length} 个提醒`, 'success');
+                    } catch (e) {
+                        console.error('JSON解析失败:', e);
+                        showNotification('⚠️ GitHub文件格式错误，使用本地数据', 'warning');
                     }
-                ];
-                renderReminders();
-                updateStats();
-                showNotification('使用本地缓存数据', 'info');
-            }
-        }
-        
-        async function saveReminders() {
-            try {
-                // 创建下载链接
-                const data = JSON.stringify(reminders, null, 2);
-                const blob = new Blob([data], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'reminders.json';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                showNotification('✅ 已导出 reminders.json，请上传到GitHub仓库', 'success');
+                } else {
+                    updateSyncStatus('success', 'GitHub无数据，使用本地', '首次运行');
+                    showNotification('ℹ️ GitHub上无数据文件，将创建新文件', 'info');
+                }
             } catch (error) {
-                showNotification('❌ 导出失败: ' + error.message, 'error');
+                updateSyncStatus('error', '加载失败', error.message);
+                showNotification('❌ 加载失败: ' + error.message, 'error');
             }
-        }
-        
-        // ==================== 渲染函数 ====================
-        function renderReminders() {
-            const container = document.getElementById('reminderList');
             
+            // 无论成功失败，都确保有默认数据
             if (!reminders || reminders.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1/-1;">
-                        <i class="fas fa-inbox"></i>
-                        <h3 style="margin-bottom: 8px;">暂无提醒项目</h3>
-                        <p style="color: #94a3b8;">点击上方"添加提醒"创建第一个项目</p>
-                    </div>
-                `;
-                return;
+                createDefaultReminders();
             }
-            
-            const today = new Date();
-            today.setHours(today.getHours() + 8);
-            const todayStr = today.toISOString().split('T')[0];
-            
-            let html = '';
-            
-            reminders.filter(r => r.enabled !== false).forEach(reminder => {
-                const isDue = reminder.nextReminder === todayStr;
-                const dueClass = isDue ? 'due' : '';
-                const statusBadge = isDue ? 
-                    '<span class="status-badge status-due"><i class="fas fa-exclamation-triangle"></i> 今日到期</span>' : 
-                    '<span class="status-badge" style="background: rgba(100,116,139,0.2); color: #94a3b8;"><i class="fas fa-clock"></i> 进行中</span>';
-                
-                // 计算下次提醒
-                const nextDate = new Date(reminder.nextReminder);
-                nextDate.setDate(nextDate.getDate() + reminder.days);
-                const nextStr = nextDate.toISOString().split('T')[0];
-                
-                html += `
-                    <div class="reminder-card ${dueClass}" data-id="${reminder.id}">
-                        <div class="reminder-header">
-                            <div>
-                                <div class="reminder-name">
-                                    ${reminder.name}
-                                    ${statusBadge}
-                                </div>
-                                <div class="reminder-id">ID: ${reminder.id}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="reminder-meta">
-                            <div>
-                                <div class="meta-label">最后更新</div>
-                                <div class="meta-value">${formatDate(reminder.lastUpdated)}</div>
-                            </div>
-                            <div>
-                                <div class="meta-label">下次提醒</div>
-                                <div class="meta-value ${isDue ? 'due' : ''}">${formatDate(reminder.nextReminder)}</div>
-                            </div>
-                            <div>
-                                <div class="meta-label">间隔天数</div>
-                                <div class="meta-value">${reminder.days}天</div>
-                            </div>
-                            <div>
-                                <div class="meta-label">下次周期</div>
-                                <div class="meta-value">${formatDate(nextStr)}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="reminder-actions">
-                            <button class="btn btn-success" onclick="markAsDone(${reminder.id})">
-                                <i class="fas fa-check"></i> 设为今天
-                            </button>
-                            <button class="btn btn-outline" onclick="editReminder(${reminder.id})">
-                                <i class="fas fa-edit"></i> 编辑
-                            </button>
-                            <button class="btn btn-outline" onclick="deleteReminder(${reminder.id})" style="color: #ef4444;">
-                                <i class="fas fa-trash"></i> 删除
-                            </button>
-                        </div>
-                        
-                        ${reminder.lastSentTime ? `
-                            <div style="margin-top: 12px; font-size: 0.75rem; color: #64748b; border-top: 1px solid #334155; padding-top: 12px;">
-                                <i class="fas fa-history"></i> 最后提醒: ${new Date(reminder.lastSentTime).toLocaleString('zh-CN')}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
         }
-        
-        function updateStats() {
-            const today = new Date();
-            today.setHours(today.getHours() + 8);
-            const todayStr = today.toISOString().split('T')[0];
-            
-            const total = reminders.filter(r => r.enabled !== false).length;
-            const due = reminders.filter(r => r.enabled !== false && r.nextReminder === todayStr).length;
-            const active = reminders.filter(r => r.enabled !== false && r.nextReminder > todayStr).length;
-            
-            document.getElementById('totalCount').textContent = total;
-            document.getElementById('dueCount').textContent = due;
-            document.getElementById('activeCount').textContent = active;
+
+        async function checkActionsStatus() {
+            showNotification('⏳ 正在触发GitHub Actions...', 'info');
+            const result = await githubAPI.triggerActions();
+            if (result.success) {
+                showNotification('✅ 已触发手动检查，3分钟内会收到提醒', 'success');
+            } else {
+                showNotification('❌ 触发失败: ' + result.error, 'error');
+            }
         }
-        
-        // ==================== 操作函数 ====================
-        async function addReminder() {
+
+        // ==================== 提醒管理函数 ====================
+        function addReminder() {
             const name = document.getElementById('reminderName').value.trim();
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
@@ -714,18 +922,19 @@
             };
             
             reminders.push(newReminder);
-            await saveReminders();
             renderReminders();
-            updateStats();
             
             showNotification(`✅ 已添加: ${name}`, 'success');
             
             // 清空表单
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
+            
+            // 自动保存到GitHub
+            setTimeout(() => syncToGitHub(), 500);
         }
-        
-        async function markAsDone(id) {
+
+        function markAsDone(id) {
             const reminder = reminders.find(r => r.id === id);
             if (reminder) {
                 const today = new Date();
@@ -740,24 +949,25 @@
                 reminder.notified = false;
                 reminder.lastSentTime = null;
                 
-                await saveReminders();
                 renderReminders();
-                updateStats();
-                
                 showNotification(`✅ ${reminder.name} 已更新，下次提醒: ${reminder.nextReminder}`, 'success');
+                
+                // 自动保存到GitHub
+                setTimeout(() => syncToGitHub(), 500);
             }
         }
-        
-        async function deleteReminder(id) {
+
+        function deleteReminder(id) {
             if (confirm('确定要删除这个提醒吗？')) {
                 reminders = reminders.filter(r => r.id !== id);
-                await saveReminders();
                 renderReminders();
-                updateStats();
                 showNotification('✅ 已删除', 'success');
+                
+                // 自动保存到GitHub
+                setTimeout(() => syncToGitHub(), 500);
             }
         }
-        
+
         function editReminder(id) {
             const reminder = reminders.find(r => r.id === id);
             if (reminder) {
@@ -769,71 +979,181 @@
                 showNotification('正在编辑: ' + reminder.name, 'info');
             }
         }
-        
-        async function testReminder() {
-            showNotification('📤 正在触发GitHub Actions...', 'info');
-            
-            // 创建一个临时测试提醒
+
+        function clearAllReminders() {
+            if (confirm('⚠️ 确定要清空所有提醒吗？此操作不可撤销！')) {
+                reminders = [];
+                renderReminders();
+                showNotification('✅ 已清空所有提醒', 'success');
+                
+                // 自动保存到GitHub
+                setTimeout(() => syncToGitHub(), 500);
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('reminderName').value = '';
+            document.getElementById('reminderDays').value = '3';
+            const today = new Date();
+            today.setHours(today.getHours() + 8);
+            document.getElementById('lastUpdated').value = today.toISOString().split('T')[0];
+        }
+
+        function exportLocalFile() {
+            const content = JSON.stringify(reminders, null, 2);
+            const blob = new Blob([content], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reminders-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('✅ 已导出备份文件', 'success');
+        }
+
+        function createDefaultReminders() {
             const today = new Date();
             today.setHours(today.getHours() + 8);
             const todayStr = today.toISOString().split('T')[0];
             
-            const testReminder = {
-                id: Date.now(),
-                name: '🔔 测试提醒 - ' + new Date().toLocaleTimeString(),
-                lastUpdated: todayStr,
-                nextReminder: todayStr,
-                days: 1,
-                createdAt: new Date().toISOString(),
-                enabled: true,
-                notified: false,
-                lastSentTime: null
-            };
+            const nextDate = new Date(todayStr);
+            nextDate.setDate(nextDate.getDate() + 3);
             
-            reminders.push(testReminder);
-            await saveReminders();
+            reminders = [
+                {
+                    id: Date.now(),
+                    name: '📝 示例提醒 - 网宿IP更新',
+                    lastUpdated: todayStr,
+                    nextReminder: todayStr,
+                    days: 3,
+                    createdAt: new Date().toISOString(),
+                    enabled: true,
+                    notified: false,
+                    lastSentTime: null
+                },
+                {
+                    id: Date.now() + 1,
+                    name: '🔒 SSL证书续期',
+                    lastUpdated: todayStr,
+                    nextReminder: nextDate.toISOString().split('T')[0],
+                    days: 7,
+                    createdAt: new Date().toISOString(),
+                    enabled: true,
+                    notified: false,
+                    lastSentTime: null
+                }
+            ];
+            
             renderReminders();
+        }
+
+        // ==================== 渲染函数 ====================
+        function renderReminders() {
+            const container = document.getElementById('reminderList');
+            
+            if (!reminders || reminders.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #64748b;">
+                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
+                        <h3 style="margin-bottom: 12px; color: #94a3b8;">暂无提醒项目</h3>
+                        <p style="margin-bottom: 24px;">点击上方"添加提醒"创建第一个项目</p>
+                        <button class="btn btn-primary" onclick="createDefaultReminders()">
+                            <i class="fas fa-magic"></i> 创建示例提醒
+                        </button>
+                    </div>
+                `;
+                updateStats();
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(today.getHours() + 8);
+            const todayStr = today.toISOString().split('T')[0];
+            
+            let html = '';
+            let dueCount = 0;
+            
+            reminders.filter(r => r.enabled !== false).forEach(reminder => {
+                const isDue = reminder.nextReminder === todayStr;
+                if (isDue) dueCount++;
+                
+                const dueClass = isDue ? 'due' : '';
+                const nextDate = new Date(reminder.nextReminder);
+                nextDate.setDate(nextDate.getDate() + reminder.days);
+                const nextStr = nextDate.toISOString().split('T')[0];
+                
+                html += `
+                    <div class="reminder-card ${dueClass}">
+                        <div class="reminder-header">
+                            <div class="reminder-name">
+                                ${reminder.name}
+                                ${isDue ? '<span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">今日到期</span>' : ''}
+                            </div>
+                            <div style="color: #64748b; font-size: 0.7rem;">ID: ${reminder.id.toString().slice(-6)}</div>
+                        </div>
+                        
+                        <div class="reminder-meta">
+                            <div>
+                                <div class="meta-label">最后更新</div>
+                                <div class="meta-value">${formatDate(reminder.lastUpdated)}</div>
+                            </div>
+                            <div>
+                                <div class="meta-label">下次提醒</div>
+                                <div class="meta-value ${isDue ? 'due' : ''}">${formatDate(reminder.nextReminder)}</div>
+                            </div>
+                            <div>
+                                <div class="meta-label">间隔天数</div>
+                                <div class="meta-value">${reminder.days}天</div>
+                            </div>
+                            <div>
+                                <div class="meta-label">下个周期</div>
+                                <div class="meta-value">${formatDate(nextStr)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="reminder-actions">
+                            <button class="btn btn-success" onclick="markAsDone(${reminder.id})">
+                                <i class="fas fa-check"></i> 设为今天
+                            </button>
+                            <button class="btn btn-outline" onclick="editReminder(${reminder.id})">
+                                <i class="fas fa-edit"></i> 编辑
+                            </button>
+                            <button class="btn btn-outline" onclick="deleteReminder(${reminder.id})" style="color: #f87171;">
+                                <i class="fas fa-trash"></i> 删除
+                            </button>
+                        </div>
+                        
+                        ${reminder.lastSentTime ? `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155; font-size: 0.7rem; color: #64748b;">
+                                <i class="fas fa-history"></i> 最后提醒: ${new Date(reminder.lastSentTime).toLocaleString('zh-CN')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
             updateStats();
+            document.getElementById('dueCount').textContent = dueCount;
+        }
+
+        function updateStats() {
+            const today = new Date();
+            today.setHours(today.getHours() + 8);
+            const todayStr = today.toISOString().split('T')[0];
             
-            showNotification('✅ 已创建测试提醒，GitHub Actions将在3分钟内运行', 'success');
-        }
-        
-        function exportReminders() {
-            saveReminders();
-        }
-        
-        function loadFromFile() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json,application/json';
+            const total = reminders.filter(r => r.enabled !== false).length;
+            const due = reminders.filter(r => r.enabled !== false && r.nextReminder === todayStr).length;
+            const active = reminders.filter(r => r.enabled !== false && r.nextReminder > todayStr).length;
             
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        reminders = data;
-                        renderReminders();
-                        updateStats();
-                        showNotification('✅ 导入成功', 'success');
-                    } catch (error) {
-                        showNotification('❌ 文件格式错误', 'error');
-                    }
-                };
-                
-                reader.readAsText(file);
-            };
-            
-            input.click();
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statDue').textContent = due;
+            document.getElementById('statActive').textContent = active;
+            document.getElementById('dueCount').textContent = due;
         }
-        
-        function refreshData() {
-            loadReminders();
-            showNotification('已刷新', 'success');
-        }
-        
+
         // ==================== 工具函数 ====================
         function formatDate(dateStr) {
             const today = new Date();
@@ -852,44 +1172,69 @@
             
             return `${month}月${day}日 ${weekday}`;
         }
-        
+
+        function formatTime(date) {
+            if (!date) return '从未';
+            const d = new Date(date);
+            const now = new Date();
+            const diff = Math.floor((now - d) / 1000 / 60);
+            
+            if (diff < 1) return '刚刚';
+            if (diff < 60) return `${diff}分钟前`;
+            if (diff < 1440) return `${Math.floor(diff / 60)}小时前`;
+            return d.toLocaleDateString('zh-CN');
+        }
+
+        function updateSyncStatus(status, text, time = null) {
+            const indicator = document.getElementById('syncIndicator');
+            const syncText = document.getElementById('syncText');
+            const syncTime = document.getElementById('syncTime');
+            
+            indicator.className = 'sync-indicator';
+            if (status === 'success') {
+                indicator.classList.add('success');
+                syncText.innerHTML = '<span style="color: #34d399;">✓ 同步状态: ' + text + '</span>';
+            } else if (status === 'error') {
+                indicator.classList.add('error');
+                syncText.innerHTML = '<span style="color: #f87171;">✗ 同步状态: ' + text + '</span>';
+            } else if (status === 'syncing') {
+                indicator.classList.add('syncing');
+                syncText.innerHTML = '⏳ 同步状态: ' + text;
+            }
+            
+            if (time) {
+                syncTime.textContent = '最后同步: ' + time;
+            }
+        }
+
         function showNotification(message, type = 'info') {
+            const area = document.getElementById('notificationArea');
+            
             // 移除现有通知
             const existing = document.querySelector('.notification');
             if (existing) existing.remove();
             
-            // 创建新通知
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             
-            let icon = 'info-circle';
-            if (type === 'success') icon = 'check-circle';
-            if (type === 'error') icon = 'exclamation-circle';
-            if (type === 'warning') icon = 'exclamation-triangle';
+            let icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'warning') icon = 'fa-exclamation-triangle';
             
             notification.innerHTML = `
-                <i class="fas fa-${icon}"></i>
-                <div>${message}</div>
+                <i class="fas ${icon}"></i>
+                <div style="flex: 1;">${message}</div>
+                <i class="fas fa-times" style="cursor: pointer; opacity: 0.7;" onclick="this.parentElement.remove()"></i>
             `;
             
-            document.body.appendChild(notification);
+            area.appendChild(notification);
             
             setTimeout(() => notification.classList.add('show'), 10);
             setTimeout(() => {
                 notification.classList.remove('show');
                 setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-        
-        function setupEventListeners() {
-            // 回车添加提醒
-            document.getElementById('reminderName').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') addReminder();
-            });
-            
-            document.getElementById('reminderDays').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') addReminder();
-            });
+            }, 5000);
         }
     </script>
 </body>
