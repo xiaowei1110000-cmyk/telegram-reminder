@@ -67,6 +67,12 @@
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
         .card {
             background: #1e293b;
             border-radius: 20px;
@@ -210,6 +216,7 @@
             padding: 20px;
             border: 1px solid #334155;
             position: relative;
+            font-family: 'Courier New', monospace;
         }
 
         .reminder-card.due {
@@ -228,48 +235,61 @@
             font-size: 1.2rem;
             font-weight: 600;
             color: #f1f5f9;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
-        .reminder-meta {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.2);
+        .reminder-box {
+            background: #0a0f1a;
             border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #334155;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            line-height: 1.6;
         }
 
-        .meta-label {
+        .reminder-line {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .reminder-icon {
+            color: #60a5fa;
+            width: 24px;
+            text-align: center;
+        }
+
+        .reminder-label {
             color: #94a3b8;
-            font-size: 0.75rem;
-            margin-bottom: 4px;
+            width: 80px;
         }
 
-        .meta-value {
+        .reminder-value {
             color: #e2e8f0;
-            font-size: 0.95rem;
             font-weight: 500;
         }
 
-        .meta-value.due {
+        .reminder-value.due {
             color: #f87171;
             font-weight: 600;
         }
 
-        .reminder-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
+        .reminder-value.warning {
+            color: #fbbf24;
         }
 
-        .reminder-actions button {
-            flex: 1;
-            padding: 8px;
+        .reminder-divider {
+            border-top: 1px dashed #334155;
+            margin: 12px 0;
+        }
+
+        .reminder-footer {
+            color: #64748b;
             font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
         }
 
         .sync-status {
@@ -360,7 +380,7 @@
                 GitHub定时提醒系统
                 <span class="badge badge-success" id="systemStatus">
                     <i class="fas fa-check-circle"></i>
-                    全自动运行
+                    全自动运行中
                 </span>
             </h1>
             <div style="color: #94a3b8; display: flex; align-items: center; gap: 12px;">
@@ -383,12 +403,12 @@
             <div class="stat-card">
                 <div class="stat-label">今日到期</div>
                 <div class="stat-value" id="statDue">0</div>
-                <div class="stat-desc">需要处理</div>
+                <div class="stat-desc">需要立即处理</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">进行中</div>
                 <div class="stat-value" id="statActive">0</div>
-                <div class="stat-desc">未到期</div>
+                <div class="stat-desc">未到期项目</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">自动检查</div>
@@ -401,10 +421,10 @@
         <div class="card">
             <div class="card-header">
                 <i class="fab fa-github"></i>
-                <h2>1. GitHub 配置</h2>
+                <h2>🔧 GitHub 配置</h2>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 2fr 1fr 2fr; gap: 16px; align-items: center; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; align-items: center; margin-bottom: 20px;">
                 <div style="color: #94a3b8;">用户名</div>
                 <input type="text" id="githubUsername" value="xiaowei1110000-cmyk" style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: white;">
                 
@@ -412,9 +432,9 @@
                 <input type="text" id="githubRepo" value="telegram-reminder" style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: white;">
                 
                 <div style="color: #94a3b8;">Token</div>
-                <div style="display: flex; gap: 8px; grid-column: span 3;">
+                <div style="display: flex; gap: 8px;">
                     <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx" style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; color: white; flex: 1;">
-                    <button class="btn btn-success" onclick="saveGitHubConfig()">保存配置</button>
+                    <button class="btn btn-success" onclick="saveGitHubConfig()">保存</button>
                     <button class="btn btn-outline" onclick="testGitHubToken()">测试</button>
                 </div>
             </div>
@@ -428,48 +448,17 @@
             </div>
         </div>
 
-        <!-- 自动化部署卡片 -->
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-robot"></i>
-                <h2>2. 一键部署自动化</h2>
-            </div>
-            
-            <div style="display: flex; gap: 16px; margin-bottom: 20px;">
-                <button class="btn btn-primary" onclick="deployWorkflow()" style="flex: 1; padding: 16px;">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    部署GitHub Actions自动提醒
-                </button>
-                <button class="btn btn-outline" onclick="checkWorkflowStatus()">
-                    <i class="fas fa-search"></i>
-                    检查状态
-                </button>
-            </div>
-            
-            <div id="workflowStatus" style="background: #0f172a; border-radius: 12px; padding: 16px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <i class="fas fa-info-circle" style="color: #60a5fa;"></i>
-                    <span>点击上方按钮，系统会自动创建：</span>
-                </div>
-                <ul style="margin-top: 12px; margin-left: 32px; color: #94a3b8; line-height: 1.8;">
-                    <li>✅ .github/workflows/send-reminder.yml - 每3分钟自动运行</li>
-                    <li>✅ reminders.json - 提醒数据文件</li>
-                    <li>✅ 自动配置 GitHub Secrets（需手动添加Telegram Token）</li>
-                </ul>
-            </div>
-        </div>
-
         <!-- 添加提醒卡片 -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-plus-circle"></i>
-                <h2>3. 新建提醒（自动保存到GitHub）</h2>
+                <h2>➕ 新建提醒</h2>
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
                     <label><i class="fas fa-tag"></i> 提醒名称</label>
-                    <input type="text" id="reminderName" placeholder="例如：网宿IP更新" autocomplete="off">
+                    <input type="text" id="reminderName" placeholder="例如：1234，域名" autocomplete="off">
                 </div>
                 
                 <div class="form-group">
@@ -479,12 +468,12 @@
                 
                 <div class="form-group">
                     <label><i class="fas fa-repeat"></i> 间隔天数</label>
-                    <input type="number" id="reminderDays" value="3" min="1" max="365">
+                    <input type="number" id="reminderDays" value="1" min="1" max="365">
                 </div>
 
                 <div style="display: flex; align-items: flex-end;">
                     <button class="btn btn-primary" onclick="addReminder()" style="width: 100%;">
-                        <i class="fas fa-plus"></i> 添加并保存
+                        <i class="fas fa-plus"></i> 添加
                     </button>
                 </div>
             </div>
@@ -494,9 +483,9 @@
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-list-check"></i>
-                <h2>4. 提醒列表</h2>
+                <h2>📋 提醒列表</h2>
                 <div style="margin-left: auto; display: flex; gap: 12px;">
-                    <span class="badge badge-warning" id="dueBadge">
+                    <span class="badge badge-danger" id="dueBadge">
                         <i class="fas fa-exclamation-triangle"></i>
                         <span id="dueCount">0</span> 个今日到期
                     </span>
@@ -508,10 +497,10 @@
                     <i class="fas fa-cloud-download-alt"></i> 从GitHub加载
                 </button>
                 <button class="btn btn-success" onclick="syncToGitHub()">
-                    <i class="fas fa-cloud-upload-alt"></i> 手动保存到GitHub
+                    <i class="fas fa-cloud-upload-alt"></i> 保存到GitHub
                 </button>
                 <button class="btn btn-warning" onclick="triggerActions()">
-                    <i class="fas fa-play"></i> 手动触发提醒
+                    <i class="fas fa-play"></i> 手动触发
                 </button>
             </div>
 
@@ -585,17 +574,44 @@
                 return this.updateFile('reminders.json', content, '📅 更新提醒数据', sha);
             }
 
-            async createWorkflow() {
+            async triggerActions() {
+                try {
+                    const res = await fetch(`${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ ref: 'main' })
+                    });
+                    return { success: res.status === 204 };
+                } catch (e) {
+                    return { success: false, error: e.message };
+                }
+            }
+
+            async getWorkflow() {
+                return this.getFile('.github/workflows/send-reminder.yml');
+            }
+
+            async ensureWorkflow() {
+                // 检查工作流是否存在
+                const existing = await this.getWorkflow();
+                if (existing.success && existing.exists) {
+                    return { success: true, exists: true, sha: existing.sha };
+                }
+                
+                // 工作流内容 - 带自动更新逻辑
                 const workflowContent = `name: 定时提醒系统
 
 on:
   schedule:
-    - cron: '*/3 * * * *'   # 每3分钟
-  workflow_dispatch:         # 手动触发
+    - cron: '*/3 * * * *'
+  workflow_dispatch:
   push:
     branches: [ main ]
     paths:
-      - 'reminders.json'     # 数据变更时触发
+      - 'reminders.json'
 
 jobs:
   reminder:
@@ -612,17 +628,20 @@ jobs:
       - name: ⏰ 设置北京时间
         run: |
           sudo timedatectl set-timezone Asia/Shanghai
-          echo "✅ 北京时间: \$(date '+%Y-%m-%d %H:%M:%S')"
+          echo "TIME=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+          echo "TODAY=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
           
-      - name: 🔍 检查提醒
+      - name: 🔍 检查并发送提醒
         env:
           TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: \${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "========================================="
-          echo "🚀 定时提醒系统启动"
-          echo "⏰ 时间: \$(date '+%Y-%m-%d %H:%M:%S')"
-          echo "========================================="
+          echo "╔════════════════════════════╗"
+          echo "║  🔔 定时提醒系统启动       ║"
+          echo "╚════════════════════════════╝"
+          echo ""
+          echo "⏰ 时间: \${{ env.TIME }}"
+          echo ""
           
           if [ ! -f "reminders.json" ]; then
             echo "❌ reminders.json 不存在"
@@ -632,210 +651,195 @@ jobs:
           # 安装 jq
           sudo apt-get update -qq && sudo apt-get install -y jq -qq
           
-          TODAY=\$(date '+%Y-%m-%d')
+          TODAY="\${{ env.TODAY }}"
           echo "📅 今天: \$TODAY"
+          echo ""
           
           COUNT=\$(jq '. | length' reminders.json)
-          echo "📋 共 \$COUNT 个提醒"
+          echo "📋 共有 \$COUNT 个提醒"
+          echo ""
           
           SENT=0
+          UPDATED=0
+          DUE_LIST=""
           
           for i in \$(seq 0 \$((COUNT-1))); do
             NAME=\$(jq -r ".[\$i].name" reminders.json)
             NEXT=\$(jq -r ".[\$i].nextReminder" reminders.json)
             DAYS=\$(jq -r ".[\$i].days" reminders.json)
+            LAST=\$(jq -r ".[\$i].lastUpdated // \"未知\"" reminders.json)
             NOTIFIED=\$(jq -r ".[\$i].notified // false" reminders.json)
             
-            echo "------------------------"
-            echo "📌 \$NAME"
-            echo "📅 下次: \$NEXT"
-            
-            if [ "\$NEXT" == "\$TODAY" ] && [ "\$NOTIFIED" == "false" ]; then
-              echo "⚠️ 今日到期，发送提醒..."
+            if [ "\$NEXT" == "\$TODAY" ]; then
+              DUE_LIST="\$DUE_LIST├─ 到期项目: \$NAME\\n"
               
-              if [ -n "\$TELEGRAM_BOT_TOKEN" ] && [ -n "\$TELEGRAM_CHAT_ID" ]; then
-                MESSAGE="🔔 <b>定时提醒</b>%0A%0A📌 <b>名称：</b>\${NAME}%0A📅 <b>日期：</b>\${TODAY}%0A⏰ <b>间隔：</b>\${DAYS}天"
+              if [ "\$NOTIFIED" == "false" ]; then
+                echo "┌─[ #\$((i+1)) \$NAME ]"
+                echo "│  📅 上次更新 · ⚪️ \$LAST"
+                echo "│  ⏰ 提醒时间 · 🔴 今天"
+                echo "│  📊 间隔周期 · \$DAYS天"
                 
-                curl -s -X POST \\
-                  "https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage" \\
-                  -d "chat_id=\${TELEGRAM_CHAT_ID}" \\
-                  -d "text=\${MESSAGE}" \\
-                  -d "parse_mode=HTML"
+                # 计算明天日期
+                TOMORROW=\$(date -d "\$TODAY + 1 day" '+%Y-%m-%d')
+                echo "│  ⏩ 下次提醒 · 🔴 🟡 \$TOMORROW"
+                echo "│  ⏱️ 剩余时间 · ⚠️ 今日到期"
+                echo "└⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯┘"
+                echo ""
                 
-                if [ \$? -eq 0 ]; then
-                  echo "✅ 发送成功"
-                  SENT=\$((SENT+1))
+                # 发送Telegram
+                if [ -n "\$TELEGRAM_BOT_TOKEN" ] && [ -n "\$TELEGRAM_CHAT_ID" ]; then
+                  MESSAGE="╔════════════════════════════╗%0A║  🔔 重要事务提醒 %0A╚════════════════════════════╝%0A%0A┌─[ #\$((i+1)) \$NAME ]%0A│  📅 上次更新 · ⚪️ \$LAST%0A│  ⏰ 提醒时间 · 🔴 今天%0A│  📊 间隔周期 · \$DAYS天%0A│  ⏩ 下次提醒 · 🔴 🟡 \$TOMORROW%0A│  ⏱️ 剩余时间 · ⚠️ 今日到期%0A└⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯┘"
                   
-                  # 更新状态
-                  jq ".[\$i].notified = true" reminders.json > tmp.json && mv tmp.json reminders.json
-                  jq ".[\$i].lastSentTime = \"\$(date -Iseconds)\"" reminders.json > tmp.json && mv tmp.json reminders.json
+                  curl -s -X POST \
+                    "https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                    -d "chat_id=\${TELEGRAM_CHAT_ID}" \
+                    -d "text=\${MESSAGE}" \
+                    -d "parse_mode=HTML"
+                  
+                  if [ \$? -eq 0 ]; then
+                    echo "✅ 发送成功"
+                    echo ""
+                    SENT=\$((SENT+1))
+                    
+                    # 计算下次提醒日期
+                    NEXT_DATE=\$(date -d "\$TODAY + \$DAYS days" '+%Y-%m-%d')
+                    
+                    # 更新JSON
+                    jq ".[\$i].lastUpdated = \"\$TODAY\"" reminders.json > tmp.json && mv tmp.json reminders.json
+                    jq ".[\$i].nextReminder = \"\$NEXT_DATE\"" reminders.json > tmp.json && mv tmp.json reminders.json
+                    jq ".[\$i].notified = true" reminders.json > tmp.json && mv tmp.json reminders.json
+                    jq ".[\$i].lastSentTime = \"\$(date -Iseconds)\"" reminders.json > tmp.json && mv tmp.json reminders.json
+                    
+                    UPDATED=\$((UPDATED+1))
+                  fi
                 fi
               fi
             fi
           done
           
-          echo "------------------------"
-          echo "📊 本次发送: \$SENT 条"
-          
           if [ \$SENT -gt 0 ]; then
-            echo "🔄 提交更新..."
+            echo "📊 今日需要处理项目"
+            echo -e "\$DUE_LIST"
+            echo ""
+            echo "⚡️ 发送时间 \$(date '+%H:%M:%S')"
+            echo ""
+            
+            # 提交更新
+            echo "🔄 提交更新到GitHub..."
             git config --global user.name "Reminder Bot"
             git config --global user.email "bot@reminder.com"
             git add reminders.json
             git commit -m "🤖 自动更新 [\$(date '+%Y-%m-%d %H:%M')]"
             git push
             echo "✅ 推送成功"
+          else
+            echo "✅ 今日无到期提醒"
           fi
           
-          echo "========================================="
+          echo ""
+          echo "╔════════════════════════════╗"
+          echo "║  ✨ 执行完成              ║"
+          echo "╚════════════════════════════╝"
 `;
-
-            return this.updateFile('.github/workflows/send-reminder.yml', workflowContent, '⚙️ 部署定时提醒工作流');
-            }
-
-            async triggerActions() {
-                try {
-                    const res = await fetch(`${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `token ${this.token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ ref: 'main' })
-                    });
-                    return { success: res.status === 204 };
-                } catch (e) {
-                    return { success: false, error: e.message };
-                }
+                
+                return this.updateFile('.github/workflows/send-reminder.yml', workflowContent, '⚙️ 创建定时提醒工作流');
             }
         }
 
         // ==================== 初始化 ====================
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('系统启动');
+            
+            // 设置默认日期为今天
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             document.getElementById('lastUpdated').value = `${year}-${month}-${day}`;
             
+            // 加载保存的配置
             const savedToken = localStorage.getItem('github_token');
+            const savedUsername = localStorage.getItem('github_username') || 'xiaowei1110000-cmyk';
+            const savedRepo = localStorage.getItem('github_repo') || 'telegram-reminder';
+            
+            document.getElementById('githubUsername').value = savedUsername;
+            document.getElementById('githubRepo').value = savedRepo;
+            
             if (savedToken) {
                 document.getElementById('githubToken').value = savedToken;
-                githubAPI = new GitHubAPI('xiaowei1110000-cmyk', 'telegram-reminder', savedToken);
+                githubAPI = new GitHubAPI(savedUsername, savedRepo, savedToken);
                 updateSyncStatus('success', 'Token已加载');
-                await loadFromGitHub();
+                
+                // 自动检查并创建工作流
+                setTimeout(async () => {
+                    await ensureWorkflowDeployed();
+                }, 1000);
+                
+                // 加载提醒数据
+                setTimeout(() => {
+                    loadFromGitHub();
+                }, 1500);
             }
+            
+            // 创建默认提醒
+            createDefaultReminders();
         });
+
+        // ==================== 确保工作流已部署 ====================
+        async function ensureWorkflowDeployed() {
+            if (!githubAPI) return;
+            
+            try {
+                const result = await githubAPI.ensureWorkflow();
+                if (result.success) {
+                    console.log('✅ 工作流已就绪');
+                }
+            } catch (e) {
+                console.log('工作流已存在或无需创建');
+            }
+        }
 
         // ==================== GitHub配置 ====================
         window.saveGitHubConfig = function() {
+            const username = document.getElementById('githubUsername').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
             const token = document.getElementById('githubToken').value.trim();
-            if (!token) return showNotification('请输入Token', 'error');
             
+            if (!token) {
+                showNotification('请输入Token', 'error');
+                return;
+            }
+            
+            localStorage.setItem('github_username', username);
+            localStorage.setItem('github_repo', repo);
             localStorage.setItem('github_token', token);
-            githubAPI = new GitHubAPI('xiaowei1110000-cmyk', 'telegram-reminder', token);
+            
+            githubAPI = new GitHubAPI(username, repo, token);
             updateSyncStatus('success', '配置已保存');
             showNotification('✅ GitHub配置保存成功', 'success');
             
-            setTimeout(() => loadFromGitHub(), 500);
+            // 自动确保工作流
+            setTimeout(() => ensureWorkflowDeployed(), 500);
+            setTimeout(() => loadFromGitHub(), 1000);
         };
 
         window.testGitHubToken = async function() {
-            if (!githubAPI) return showNotification('请先保存配置', 'error');
+            if (!githubAPI) {
+                showNotification('请先保存配置', 'error');
+                return;
+            }
             
             try {
                 const res = await githubAPI.getFile('');
                 if (res.success) {
-                    showNotification('✅ Token有效！', 'success');
+                    showNotification('✅ Token有效', 'success');
                     updateSyncStatus('success', 'Token有效');
                 }
             } catch (e) {
                 showNotification('❌ Token无效', 'error');
+                updateSyncStatus('error', 'Token无效');
             }
         };
-
-        // ==================== 自动化部署 ====================
-        window.deployWorkflow = async function() {
-            if (!githubAPI) return showNotification('请先配置GitHub Token', 'error');
-            
-            showNotification('⏳ 正在部署自动化工作流...', 'info');
-            updateSyncStatus('syncing', '部署中...');
-            
-            try {
-                const result = await githubAPI.createWorkflow();
-                if (result.success) {
-                    showNotification('✅ 自动化部署成功！每3分钟自动运行', 'success');
-                    updateSyncStatus('success', '部署成功');
-                    document.getElementById('workflowStatus').innerHTML = `
-                        <div style="color: #34d399;">
-                            <i class="fas fa-check-circle"></i> 已部署！GitHub Actions 每3分钟自动检查提醒
-                        </div>
-                    `;
-                    
-                    // 自动创建示例数据
-                    await createInitialData();
-                } else {
-                    throw new Error(result.error);
-                }
-            } catch (e) {
-                showNotification('❌ 部署失败: ' + e.message, 'error');
-                updateSyncStatus('error', '部署失败');
-            }
-        };
-
-        window.checkWorkflowStatus = async function() {
-            if (!githubAPI) return showNotification('请先配置GitHub Token', 'error');
-            
-            try {
-                const res = await githubAPI.getFile('.github/workflows/send-reminder.yml');
-                if (res.exists) {
-                    showNotification('✅ 工作流已部署', 'success');
-                } else {
-                    showNotification('⚠️ 工作流未部署，请点击"部署"按钮', 'warning');
-                }
-            } catch (e) {
-                showNotification('❌ 检查失败', 'error');
-            }
-        };
-
-        // ==================== 创建初始数据 ====================
-        async function createInitialData() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
-            
-            const nextDate = new Date(todayStr);
-            nextDate.setDate(nextDate.getDate() + 3);
-            const nextYear = nextDate.getFullYear();
-            const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
-            const nextDay = String(nextDate.getDate()).padStart(2, '0');
-            
-            reminders = [
-                {
-                    id: Date.now(),
-                    name: '📝 网宿IP更新',
-                    lastUpdated: todayStr,
-                    nextReminder: todayStr,
-                    days: 3,
-                    enabled: true,
-                    notified: false
-                },
-                {
-                    id: Date.now() + 1,
-                    name: '🔒 SSL证书续期',
-                    lastUpdated: todayStr,
-                    nextReminder: `${nextYear}-${nextMonth}-${nextDay}`,
-                    days: 7,
-                    enabled: true,
-                    notified: false
-                }
-            ];
-            
-            await syncToGitHub();
-            renderReminders();
-        }
 
         // ==================== 提醒管理 ====================
         window.addReminder = async function() {
@@ -843,8 +847,9 @@ jobs:
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
             
-            if (!name || !lastUpdated || !days) {
-                return showNotification('请填写完整信息', 'error');
+            if (!name) {
+                showNotification('请输入提醒名称', 'error');
+                return;
             }
             
             // 计算下次提醒日期
@@ -871,11 +876,11 @@ jobs:
             // 自动保存到GitHub
             await syncToGitHub();
             
-            showNotification(`✅ 已添加: ${name}，下次提醒: ${year}-${month}-${day}`, 'success');
+            showNotification(`✅ 已添加: ${name}`, 'success');
             
             // 清空表单
             document.getElementById('reminderName').value = '';
-            document.getElementById('reminderDays').value = '3';
+            document.getElementById('reminderDays').value = '1';
         };
 
         window.markAsDone = async function(id) {
@@ -919,13 +924,19 @@ jobs:
                 document.getElementById('lastUpdated').value = reminder.lastUpdated;
                 document.getElementById('reminderDays').value = reminder.days;
                 
-                deleteReminder(id);
+                // 删除原提醒
+                reminders = reminders.filter(r => r.id !== id);
+                renderReminders();
+                showNotification('正在编辑: ' + reminder.name, 'info');
             }
         };
 
         // ==================== GitHub同步 ====================
         window.loadFromGitHub = async function() {
-            if (!githubAPI) return showNotification('请先配置GitHub Token', 'error');
+            if (!githubAPI) {
+                showNotification('请先配置GitHub Token', 'error');
+                return;
+            }
             
             updateSyncStatus('syncing', '加载中...');
             
@@ -948,15 +959,25 @@ jobs:
         };
 
         window.syncToGitHub = async function() {
-            if (!githubAPI) return showNotification('请先配置GitHub Token', 'error');
-            if (reminders.length === 0) return showNotification('没有数据可保存', 'warning');
+            if (!githubAPI) {
+                showNotification('请先配置GitHub Token', 'error');
+                return;
+            }
+            
+            if (reminders.length === 0) {
+                showNotification('没有数据可保存', 'warning');
+                return;
+            }
             
             updateSyncStatus('syncing', '保存中...');
             
             try {
                 // 先获取最新的SHA
                 const latest = await githubAPI.getReminders();
-                const sha = latest.exists ? latest.sha : null;
+                let sha = null;
+                if (latest.success && latest.exists) {
+                    sha = latest.sha;
+                }
                 
                 const content = JSON.stringify(reminders, null, 2);
                 const result = await githubAPI.updateReminders(content, sha);
@@ -975,13 +996,18 @@ jobs:
         };
 
         window.triggerActions = async function() {
-            if (!githubAPI) return showNotification('请先配置GitHub Token', 'error');
+            if (!githubAPI) {
+                showNotification('请先配置GitHub Token', 'error');
+                return;
+            }
             
+            showNotification('⏳ 正在触发GitHub Actions...', 'info');
             const result = await githubAPI.triggerActions();
+            
             if (result.success) {
                 showNotification('✅ 已触发手动检查，3分钟内会收到提醒', 'success');
             } else {
-                showNotification('❌ 触发失败', 'error');
+                showNotification('❌ 触发失败: ' + (result.error || '请检查workflow权限'), 'error');
             }
         };
 
@@ -1007,66 +1033,77 @@ jobs:
             const day = String(today.getDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
             
+            // 计算明天
+            const tomorrow = new Date(todayStr);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowYear = tomorrow.getFullYear();
+            const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0');
+            const tomorrowStr = `${tomorrowYear}-${tomorrowMonth}-${tomorrowDay}`;
+            
             let html = '';
             let dueCount = 0;
             
-            reminders.forEach(reminder => {
+            reminders.forEach((reminder, index) => {
                 const isDue = reminder.nextReminder === todayStr;
                 if (isDue) dueCount++;
                 
-                // 计算下个周期
-                const nextCycle = new Date(reminder.nextReminder);
-                nextCycle.setDate(nextCycle.getDate() + reminder.days);
-                const cycleYear = nextCycle.getFullYear();
-                const cycleMonth = String(nextCycle.getMonth() + 1).padStart(2, '0');
-                const cycleDay = String(nextCycle.getDate()).padStart(2, '0');
+                const nextDate = new Date(reminder.nextReminder);
+                nextDate.setDate(nextDate.getDate() + reminder.days);
+                const nextYear = nextDate.getFullYear();
+                const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+                const nextDay = String(nextDate.getDate()).padStart(2, '0');
                 
                 html += `
                     <div class="reminder-card ${isDue ? 'due' : ''}">
                         <div class="reminder-header">
-                            <div class="reminder-name">
-                                ${reminder.name}
-                                ${isDue ? '<span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">今日到期</span>' : ''}
-                            </div>
-                            <div style="color: #64748b; font-size: 0.7rem;">ID: ${reminder.id.toString().slice(-6)}</div>
+                            <span class="reminder-name">#${index + 1} ${reminder.name}</span>
+                            ${isDue ? '<span class="badge badge-danger"><i class="fas fa-exclamation-circle"></i> 今日到期</span>' : ''}
                         </div>
                         
-                        <div class="reminder-meta">
-                            <div>
-                                <div class="meta-label">最后更新</div>
-                                <div class="meta-value">${formatDate(reminder.lastUpdated)}</div>
+                        <div class="reminder-box">
+                            <div class="reminder-line">
+                                <span class="reminder-icon">📅</span>
+                                <span class="reminder-label">上次更新</span>
+                                <span class="reminder-value">⚪️ ${reminder.lastUpdated}</span>
                             </div>
-                            <div>
-                                <div class="meta-label">下次提醒</div>
-                                <div class="meta-value ${isDue ? 'due' : ''}">${formatDate(reminder.nextReminder)}</div>
+                            <div class="reminder-line">
+                                <span class="reminder-icon">⏰</span>
+                                <span class="reminder-label">提醒时间</span>
+                                <span class="reminder-value ${isDue ? 'due' : ''}">${isDue ? '🔴 今天' : `⚪️ ${reminder.nextReminder}`}</span>
                             </div>
-                            <div>
-                                <div class="meta-label">间隔天数</div>
-                                <div class="meta-value">${reminder.days}天</div>
+                            <div class="reminder-line">
+                                <span class="reminder-icon">📊</span>
+                                <span class="reminder-label">间隔周期</span>
+                                <span class="reminder-value">${reminder.days}天</span>
                             </div>
-                            <div>
-                                <div class="meta-label">下个周期</div>
-                                <div class="meta-value">${formatDate(`${cycleYear}-${cycleMonth}-${cycleDay}`)}</div>
+                            <div class="reminder-line">
+                                <span class="reminder-icon">⏩</span>
+                                <span class="reminder-label">下次提醒</span>
+                                <span class="reminder-value ${isDue ? 'due warning' : ''}">${isDue ? `🔴 🟡 ${tomorrowStr}` : `${nextYear}-${nextMonth}-${nextDay}`}</span>
+                            </div>
+                            <div class="reminder-divider"></div>
+                            <div class="reminder-line">
+                                <span class="reminder-icon">⏱️</span>
+                                <span class="reminder-label">剩余时间</span>
+                                <span class="reminder-value ${isDue ? 'due' : ''}">${isDue ? '⚠️ 今日到期' : getRemainingDays(reminder.nextReminder)}</span>
                             </div>
                         </div>
                         
-                        <div class="reminder-actions">
-                            <button class="btn btn-success" onclick="markAsDone(${reminder.id})">
-                                <i class="fas fa-check"></i> 设为今天
-                            </button>
-                            <button class="btn btn-outline" onclick="editReminder(${reminder.id})">
-                                <i class="fas fa-edit"></i> 编辑
-                            </button>
-                            <button class="btn btn-outline" onclick="deleteReminder(${reminder.id})" style="color: #f87171;">
-                                <i class="fas fa-trash"></i> 删除
-                            </button>
-                        </div>
-                        
-                        ${reminder.lastSentTime ? `
-                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155; font-size: 0.7rem; color: #64748b;">
-                                <i class="fas fa-history"></i> 最后提醒: ${new Date(reminder.lastSentTime).toLocaleString('zh-CN')}
+                        <div class="reminder-footer">
+                            <span>ID: ${reminder.id.toString().slice(-6)}</span>
+                            <div>
+                                <button class="btn btn-success" onclick="markAsDone(${reminder.id})" style="padding: 6px 12px; font-size: 0.8rem;">
+                                    <i class="fas fa-check"></i> 设为今天
+                                </button>
+                                <button class="btn btn-outline" onclick="editReminder(${reminder.id})" style="padding: 6px 12px; font-size: 0.8rem;">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                                <button class="btn btn-outline" onclick="deleteReminder(${reminder.id})" style="padding: 6px 12px; font-size: 0.8rem; color: #f87171;">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
                             </div>
-                        ` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -1074,6 +1111,21 @@ jobs:
             container.innerHTML = html;
             updateStats();
             document.getElementById('dueCount').textContent = dueCount;
+        }
+
+        function getRemainingDays(dateStr) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const target = new Date(dateStr);
+            target.setHours(0, 0, 0, 0);
+            
+            const diff = Math.floor((target - today) / (1000 * 60 * 60 * 24));
+            
+            if (diff === 0) return '⚠️ 今日到期';
+            if (diff === 1) return '⏳ 明天到期';
+            if (diff === 2) return '⏳ 后天到期';
+            if (diff > 0) return `⏳ ${diff}天后到期`;
+            return '✅ 已过期';
         }
 
         function updateStats() {
@@ -1092,27 +1144,26 @@ jobs:
             document.getElementById('statActive').textContent = active;
         }
 
-        function formatDate(dateStr) {
-            if (!dateStr) return '未知';
-            
+        function createDefaultReminders() {
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
             
-            if (dateStr === todayStr) return '今天';
+            reminders = [
+                {
+                    id: Date.now(),
+                    name: '1234，域名',
+                    lastUpdated: '2026-02-11',
+                    nextReminder: todayStr,
+                    days: 1,
+                    enabled: true,
+                    notified: false
+                }
+            ];
             
-            try {
-                const date = new Date(dateStr);
-                const month2 = date.getMonth() + 1;
-                const day2 = date.getDate();
-                const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-                const weekday = weekdays[date.getDay()];
-                return `${month2}月${day2}日 ${weekday}`;
-            } catch {
-                return dateStr;
-            }
+            renderReminders();
         }
 
         function updateSyncStatus(status, text) {
@@ -1132,7 +1183,9 @@ jobs:
                 syncText.innerHTML = `⏳ ${text}`;
             }
             
-            document.getElementById('syncTime').textContent = `最后操作: ${new Date().toLocaleTimeString('zh-CN')}`;
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            document.getElementById('syncTime').textContent = `最后操作: ${timeStr}`;
         }
 
         function showNotification(message, type = 'info') {
@@ -1157,43 +1210,6 @@ jobs:
                 notification.classList.remove('show');
                 setTimeout(() => notification.remove(), 300);
             }, 5000);
-        }
-
-        function createDefaultReminders() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
-            
-            const nextDate = new Date(todayStr);
-            nextDate.setDate(nextDate.getDate() + 3);
-            const nextYear = nextDate.getFullYear();
-            const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
-            const nextDay = String(nextDate.getDate()).padStart(2, '0');
-            
-            reminders = [
-                {
-                    id: Date.now(),
-                    name: '📝 网宿IP更新',
-                    lastUpdated: todayStr,
-                    nextReminder: todayStr,
-                    days: 3,
-                    enabled: true,
-                    notified: false
-                },
-                {
-                    id: Date.now() + 1,
-                    name: '🔒 SSL证书续期',
-                    lastUpdated: todayStr,
-                    nextReminder: `${nextYear}-${nextMonth}-${nextDay}`,
-                    days: 7,
-                    enabled: true,
-                    notified: false
-                }
-            ];
-            
-            renderReminders();
         }
     </script>
 </body>
