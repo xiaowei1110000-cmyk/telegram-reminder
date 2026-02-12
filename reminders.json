@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": 1770881398555,
+    "name": "11111",
+    "lastUpdated": "2026-02-10",
+    "nextReminder": "2026-02-12",
+    "days": 2,
+    "createdAt": "2026-02-12T07:29:58.555Z",
+    "enabled": true,
+    "notified": false,
+    "lastSentTime": null
+  }
+]
