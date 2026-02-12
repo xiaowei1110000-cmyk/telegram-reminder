@@ -2,61 +2,71 @@ name: 定时提醒
 
 on:
   schedule:
+    # 每3分钟运行一次，24小时不间断
     - cron: '*/3 * * * *'
   workflow_dispatch:
 
 jobs:
-  send:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       
-      - name: 发送提醒
+      - name: 设置北京时间
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+          echo "TZ='Asia/Shanghai'" >> $GITHUB_ENV
+      
+      - name: 检查并发送提醒
         env:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "开始执行提醒检查..."
-          echo "当前时间: $(date)"
+          echo "=================================="
+          echo "✅ 定时提醒系统启动"
+          echo "⏰ 北京时间: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "=================================="
           
-          # 检查文件是否存在
+          # 检查文件
           if [ ! -f "reminders.json" ]; then
-            echo "错误: reminders.json 不存在！"
-            exit 1
+            echo "⚠️ 提醒文件不存在，创建默认文件"
+            echo '[]' > reminders.json
           fi
           
           # 安装jq
-          sudo apt-get update && sudo apt-get install -y jq
+          sudo apt-get update -qq && sudo apt-get install -y jq -qq
           
-          # 获取今天日期
+          # 今天日期
           TODAY=$(date '+%Y-%m-%d')
-          echo "今天日期: $TODAY"
+          echo "📅 今天: $TODAY"
           
-          # 读取提醒并检查
-          jq -c '.[]' reminders.json | while read item; do
-            NAME=$(echo $item | jq -r '.name')
-            NEXT=$(echo $item | jq -r '.nextReminder')
-            DAYS=$(echo $item | jq -r '.days')
-            
-            echo "检查: $NAME, 下次提醒: $NEXT"
+          # 读取提醒
+          COUNT=$(jq '. | length' reminders.json)
+          echo "📋 共有 $COUNT 个提醒"
+          
+          SENT=0
+          
+          for i in $(seq 0 $((COUNT-1))); do
+            NAME=$(jq -r ".[$i].name" reminders.json)
+            NEXT=$(jq -r ".[$i].nextReminder" reminders.json)
             
             if [ "$NEXT" == "$TODAY" ]; then
-              echo "⚠️ 今日到期，发送提醒..."
+              echo "⚠️ 到期: $NAME"
               
-              # 发送Telegram消息
-              curl -s -X POST \
-                "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-                -d "chat_id=${CHAT_ID}" \
-                -d "text=🔔 提醒: ${NAME}%0A📅 日期: ${TODAY}%0A⏰ 间隔: ${DAYS}天" \
-                -d "parse_mode=HTML"
-              
-              if [ $? -eq 0 ]; then
-                echo "✅ 发送成功"
-              else
-                echo "❌ 发送失败"
+              if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
+                curl -s -X POST \
+                  "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+                  -d "chat_id=${CHAT_ID}" \
+                  -d "text=🔔 定时提醒%0A%0A📌 名称：${NAME}%0A📅 日期：${TODAY}" \
+                  -d "parse_mode=HTML" > /dev/null
+                
+                if [ $? -eq 0 ]; then
+                  echo "✅ 发送成功"
+                  SENT=$((SENT+1))
+                fi
               fi
             fi
           done
           
-          echo "执行完成"
+          echo "📊 本次发送: $SENT 条"
+          echo "=================================="
