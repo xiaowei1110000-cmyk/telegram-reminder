@@ -7,7 +7,7 @@
     "days": 2,
     "createdAt": "2026-02-12T09:44:07.499Z",
     "enabled": true,
-    "notified": false,
-    "lastSentTime": null
+    "notified": true,
+    "lastSentTime": "2026-02-12T11:59:54+00:00"
   }
 ]
