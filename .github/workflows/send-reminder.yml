@@ -1,8 +1,8 @@
-name: 🤖 Telegram定时提醒
+name: Telegram定时提醒
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # 每5分钟运行一次（测试用）
+    - cron: '*/5 * * * *'  # 每5分钟运行一次
   workflow_dispatch:        # 手动触发
 
 jobs:
@@ -11,24 +11,24 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: 📥 检出代码
+      - name: 检出代码
         uses: actions/checkout@v4
       
-      - name: 🔧 设置Node.js
+      - name: 设置Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
       
-      - name: 🚀 执行提醒脚本
+      - name: 执行提醒脚本
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: node scripts/send-reminder.js
       
-      - name: 💾 提交更新
+      - name: 提交更新
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data/reminders.json reminders.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "🔄 自动更新提醒状态 [skip ci]"
+          git diff --quiet && git diff --staged --quiet || git commit -m "自动更新提醒状态 [skip ci]"
           git push
