@@ -1,132 +1,199 @@
 # ============================================
 # GitHub定时提醒系统 - 自动化工作流
-# 功能：每天11:00自动检查并发送Telegram提醒
-# 文件位置：.github/workflows/send-reminder.yml
+# 功能：每天11:00自动运行，永不间断
+# 作者：xiaowei1110000-cmyk
 # ============================================
 
-name: 🤖 定时Telegram提醒
+name: 🚀 自动提醒系统
 
 # 触发条件
 on:
   # 1. 定时触发 - 每天北京时间11:00
   schedule:
-    - cron: '0 3 * * *'     # UTC时间03:00 = 北京时间11:00
+    - cron: '0 3 * * *'
   
   # 2. 手动触发 - 用于测试
   workflow_dispatch:
-    inputs:
-      reason:
-        description: '手动触发原因'
-        required: false
-        default: '手动测试运行'
-      environment:
-        description: '运行环境'
-        required: false
-        default: 'production'
 
-# 权限设置
+# 权限设置 - 必须要有写入权限
 permissions:
-  contents: write          # 允许写入仓库（更新reminders.json）
-  actions: read           # 允许读取actions信息
-  issues: read           # 允许读取issues（备用）
+  contents: write
+  actions: read
 
-# 环境变量
+# 全局环境变量
 env:
-  TZ: Asia/Shanghai      # 设置时区为北京时间
-  NODE_VERSION: '18'     # Node.js版本
+  TZ: Asia/Shanghai
+  NODE_VERSION: '18'
 
-# 工作任务
 jobs:
-  send-telegram-reminder:
-    name: 📨 发送提醒
+  telegram-reminder:
+    name: 📨 发送Telegram提醒
     runs-on: ubuntu-latest
     
-    # 步骤定义
     steps:
-      # 步骤1：检出代码
-      - name: 📥 1. 检出仓库代码
+      # 步骤1: 检出代码
+      - name: 📥 1. 获取代码
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0          # 获取完整历史
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
       
-      # 步骤2：设置Node.js
-      - name: 🔧 2. 配置Node.js环境
+      # 步骤2: 设置Node.js
+      - name: 🔧 2. 配置Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'           # 缓存node_modules
       
-      # 步骤3：安装依赖
-      - name: 📦 3. 安装项目依赖
-        run: |
-          echo "⏳ 正在安装node-fetch..."
-          npm install node-fetch@2
-          echo "✅ 依赖安装完成"
+      # 步骤3: 安装依赖
+      - name: 📦 3. 安装node-fetch
+        run: npm install node-fetch@2
       
-      # 步骤4：检查当前状态
-      - name: 🔍 4. 检查系统状态
-        run: |
-          echo "════════════════════════════════════════"
-          echo "🤖 GitHub Actions 定时任务已启动"
-          echo "📅 北京时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
-          echo "📁 当前目录: $(pwd)"
-          echo "📄 文件列表:"
-          ls -la
-          echo "════════════════════════════════════════"
-      
-      # 步骤5：执行提醒脚本（核心）
-      - name: 🤖 5. 执行提醒检查脚本
+      # 步骤4: 执行提醒脚本
+      - name: 🤖 4. 执行提醒检查
         id: reminder
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "⏳ 开始执行提醒脚本..."
-          node scripts/send-reminder.js
-          echo "✅ 脚本执行完成"
+          echo "⏰ 开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "📅 今日日期: $(TZ='Asia/Shanghai' date '+%Y-%m-%d')"
+          
+          # 创建并执行脚本
+          cat > reminder.js << 'EOF'
+// ==================== 核心提醒系统 ====================
+const fs = require('fs');
+const fetch = require('node-fetch');
+
+// 1. 获取北京时间
+function getBeijingDate() {
+    const now = new Date();
+    now.setHours(now.getHours() + 8);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// 2. 计算下次提醒日期
+function getNextDate(lastDate, days) {
+    const date = new Date(lastDate);
+    date.setDate(date.getDate() + days);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// 3. 主函数
+async function main() {
+    console.log('\n' + '='.repeat(60));
+    console.log('🚀 GitHub定时提醒系统 开始运行');
+    console.log('='.repeat(60));
+    
+    // 读取数据
+    let reminders = [];
+    try {
+        const data = fs.readFileSync('reminders.json', 'utf8');
+        reminders = JSON.parse(data);
+        console.log(`📦 加载提醒: ${reminders.length} 个`);
+    } catch (e) {
+        console.log('❌ 读取失败，使用空数据');
+        reminders = [];
+    }
+    
+    const today = getBeijingDate();
+    console.log(`📅 今日日期: ${today}`);
+    
+    // 找出今日到期且未提醒的项目
+    const dueList = reminders.filter(r => {
+        return r.enabled !== false && 
+               r.nextReminder === today && 
+               !r.notified;
+    });
+    
+    console.log(`🔔 今日到期: ${dueList.length} 个`);
+    
+    // 如果有到期项目，发送提醒
+    if (dueList.length > 0) {
+        const token = process.env.TELEGRAM_BOT_TOKEN;
+        const chatId = process.env.TELEGRAM_CHAT_ID;
+        
+        if (!token || !chatId) {
+            console.log('❌ 未配置Telegram');
+            process.exit(1);
+        }
+        
+        // 格式化消息
+        let msg = '🔔 *定时提醒系统*\n';
+        msg += '═══════════════════\n';
+        msg += `📅 日期：${today}\n`;
+        msg += `⏰ 时间：${new Date().toLocaleTimeString('zh-CN', {timeZone: 'Asia/Shanghai'})}\n\n`;
+        msg += `*今日需要处理（${dueList.length}项）：*\n\n`;
+        
+        dueList.forEach((item, i) => {
+            const nextDate = getNextDate(today, item.days);
+            msg += `${i+1}. *${item.name}*\n`;
+            msg += `   • 周期：每${item.days}天\n`;
+            msg += `   • 下次：${nextDate}\n\n`;
+            
+            // 更新状态
+            item.lastUpdated = today;
+            item.nextReminder = nextDate;
+            item.notified = true;
+            item.lastNotified = new Date().toISOString();
+        });
+        
+        msg += '═══════════════════\n';
+        msg += `[管理提醒](https://github.com/${process.env.GITHUB_REPOSITORY})`;
+        
+        // 发送Telegram
+        console.log('📤 发送Telegram消息...');
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: msg,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.ok) {
+            console.log(`✅ 发送成功: ${dueList.length} 条提醒`);
+            // 保存更新
+            fs.writeFileSync('reminders.json', JSON.stringify(reminders, null, 2));
+            console.log('💾 数据已更新');
+        } else {
+            console.log('❌ 发送失败:', result.description);
+        }
+    } else {
+        console.log('ℹ️ 今日无到期提醒');
+    }
+    
+    console.log('='.repeat(60));
+    console.log('✨ 执行完成');
+    console.log('='.repeat(60));
+}
+
+main().catch(console.error);
+EOF
+
+          node reminder.js
       
-      # 步骤6：提交更新到仓库
-      - name: 💾 6. 保存更新到GitHub
+      # 步骤5: 提交更新
+      - name: 💾 5. 保存到仓库
         run: |
-          # 配置Git用户（使用actions机器人）
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 添加reminders.json到暂存区
           git add reminders.json
-          
-          # 检查是否有变化
           if git diff --staged --quiet; then
-            echo "ℹ️ reminders.json 没有变化，跳过提交"
+            echo "ℹ️ 无数据更新"
           else
-            # 提交更改
-            git commit -m "📅 自动更新提醒状态 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')] [skip ci]"
-            
-            # 推送到仓库
+            git commit -m "📅 自动更新提醒 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')]"
             git push
-            echo "✅ 已成功提交更新到仓库"
-            
-            # 显示更新内容
-            echo "📊 更新摘要:"
-            git show --stat
+            echo "✅ 已提交更新"
           fi
-      
-      # 步骤7：发送成功通知（可选）
-      - name: 📢 7. 任务完成通知
-        if: success()
-        run: |
-          echo "🎉 恭喜！所有步骤执行成功！"
-          echo "⏰ 执行时间: $(TZ='Asia/Shanghai' date)"
-          echo "📨 Telegram提醒已发送（如有到期项目）"
-      
-      # 步骤8：错误处理
-      - name: ❌ 8. 错误处理
-        if: failure()
-        run: |
-          echo "⚠️ 任务执行失败，请检查："
-          echo "1. GitHub Secrets是否正确配置"
-          echo "2. Telegram Bot Token是否有效"
-          echo "3. reminders.json格式是否正确"
-          exit 1
