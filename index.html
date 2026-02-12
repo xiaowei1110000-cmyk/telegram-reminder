@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub定时提醒系统 · Actions驱动版</title>
+    <title>GitHub定时提醒系统 · 轻量版</title>
     <style>
-        /* ========== 全局样式 ========== */
         * {
             margin: 0;
             padding: 0;
@@ -25,7 +24,6 @@
             margin: 0 auto;
         }
 
-        /* ========== 头部 ========== */
         .header {
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(12px);
@@ -33,12 +31,11 @@
             border-radius: 24px;
             padding: 32px;
             margin-bottom: 28px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
         h1 {
             font-size: 2.4rem;
-            background: linear-gradient(135deg, #60a5fa, #34d399, #fbbf24);
+            background: linear-gradient(135deg, #60a5fa, #34d399);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -48,15 +45,6 @@
             margin-bottom: 12px;
         }
 
-        .subtitle {
-            color: #94a3b8;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* ========== 状态徽章 ========== */
         .badge {
             display: inline-flex;
             align-items: center;
@@ -79,32 +67,12 @@
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
-        .badge-error {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .badge-info {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-
-        /* ========== 卡片 ========== */
         .card {
             background: #1e293b;
             border-radius: 20px;
             padding: 28px;
             margin-bottom: 28px;
             border: 1px solid #334155;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            transition: all 0.2s;
-        }
-
-        .card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 12px 36px rgba(59, 130, 246, 0.1);
         }
 
         .card-header {
@@ -130,7 +98,6 @@
             color: #f1f5f9;
         }
 
-        /* ========== 统计卡片 ========== */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -143,12 +110,6 @@
             padding: 20px;
             border-radius: 16px;
             border: 1px solid #334155;
-            transition: all 0.2s;
-        }
-
-        .stat-card:hover {
-            border-color: #3b82f6;
-            transform: translateY(-2px);
         }
 
         .stat-label {
@@ -162,15 +123,8 @@
             font-weight: 700;
             color: #60a5fa;
             line-height: 1;
-            margin-bottom: 4px;
         }
 
-        .stat-desc {
-            color: #64748b;
-            font-size: 0.75rem;
-        }
-
-        /* ========== 表单 ========== */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -199,20 +153,13 @@
             padding: 12px 16px;
             color: #f1f5f9;
             font-size: 0.95rem;
-            transition: all 0.2s;
         }
 
         .form-group input:focus {
             outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         }
 
-        .form-group input::placeholder {
-            color: #64748b;
-        }
-
-        /* ========== 按钮 ========== */
         .btn {
             padding: 12px 24px;
             border-radius: 12px;
@@ -232,23 +179,8 @@
             color: white;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
-        }
-
         .btn-success {
             background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
             color: white;
         }
 
@@ -266,7 +198,6 @@
         .btn-outline:hover {
             border-color: #3b82f6;
             color: #60a5fa;
-            background: rgba(59, 130, 246, 0.05);
         }
 
         .btn-group {
@@ -276,7 +207,6 @@
             margin-top: 16px;
         }
 
-        /* ========== GitHub配置卡片 ========== */
         .github-config {
             background: #0f172a;
             border-radius: 16px;
@@ -304,25 +234,12 @@
 
         .sync-indicator.success {
             background: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
         }
 
         .sync-indicator.error {
             background: #ef4444;
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
         }
 
-        .sync-indicator.syncing {
-            background: #f59e0b;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* ========== 提醒卡片 ========== */
         .reminder-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -335,19 +252,10 @@
             border-radius: 16px;
             padding: 20px;
             border: 1px solid #334155;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .reminder-card:hover {
-            border-color: #3b82f6;
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
         }
 
         .reminder-card.due {
             border-left: 4px solid #ef4444;
-            background: linear-gradient(to right, #0f172a, #1a1f2e);
         }
 
         .reminder-header {
@@ -390,7 +298,6 @@
 
         .meta-value.due {
             color: #f87171;
-            font-weight: 600;
         }
 
         .reminder-actions {
@@ -405,7 +312,6 @@
             font-size: 0.8rem;
         }
 
-        /* ========== 通知 ========== */
         #notificationArea {
             position: fixed;
             top: 24px;
@@ -423,13 +329,7 @@
             display: flex;
             align-items: center;
             gap: 16px;
-            transform: translateX(120%);
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             border-left: 4px solid;
-        }
-
-        .notification.show {
-            transform: translateX(0);
         }
 
         .notification.success {
@@ -448,86 +348,79 @@
             border-left-color: #3b82f6;
         }
 
-        .notification i {
-            font-size: 1.3rem;
-        }
-
-        /* ========== 响应式 ========== */
         @media (max-width: 768px) {
             body { padding: 16px; }
             h1 { font-size: 1.8rem; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
             .form-grid { grid-template-columns: 1fr; }
             .reminder-grid { grid-template-columns: 1fr; }
-            .btn-group { flex-direction: column; }
-            .btn-group .btn { width: 100%; }
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <!-- ========== 头部 ========== -->
+        <!-- 头部 -->
         <div class="header">
             <h1>
                 <i class="fas fa-bell"></i>
                 GitHub定时提醒系统
                 <span class="badge badge-success" id="systemStatusBadge">
                     <i class="fas fa-check-circle"></i>
-                    Actions驱动模式
+                    配置管理界面
                 </span>
             </h1>
-            <div class="subtitle">
+            <div class="subtitle" style="color: #94a3b8; display: flex; align-items: center; gap: 12px;">
                 <i class="fas fa-clock"></i>
-                每3分钟GitHub Actions自动检查 · 云端永久运行
+                GitHub Actions 每3分钟自动检查 · 关闭浏览器依然生效
                 <span style="margin-left: auto; background: rgba(59,130,246,0.1); padding: 6px 14px; border-radius: 30px;">
                     <i class="fas fa-github"></i>
-                    关闭浏览器依然生效
+                    云端运行
                 </span>
             </div>
         </div>
 
-        <!-- ========== 重要提醒 ========== -->
+        <!-- 重要提示 -->
         <div class="card" style="background: rgba(245, 158, 11, 0.1); border-color: #f59e0b;">
             <div style="display: flex; align-items: center; gap: 16px;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #fbbf24;"></i>
                 <div>
-                    <h3 style="color: #fbbf24; margin-bottom: 8px;">⚠️ 提醒机制说明（重要）</h3>
-                    <p style="color: #e2e8f0; margin-bottom: 4px;">本页面关闭后，<strong style="color: #fbbf24;">提醒功能完全由GitHub Actions驱动</strong>，不再依赖浏览器。</p>
-                    <p style="color: #94a3b8; font-size: 0.9rem;">✅ 必须配置正确的Token并保存到GitHub → ✅ 必须创建 send-reminder.yml 工作流文件 → ✅ 系统将每3分钟自动检查并发送提醒到Telegram</p>
+                    <h3 style="color: #fbbf24; margin-bottom: 8px;">✅ 提醒机制说明</h3>
+                    <p style="color: #e2e8f0;">本页面只负责<strong style="color: #fbbf24;">管理提醒数据</strong>，提醒发送由GitHub Actions自动完成。</p>
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 4px;">您的Telegram Bot Token和Chat ID已经在GitHub Secrets中配置，不需要在此页面重复绑定。</p>
                 </div>
             </div>
         </div>
 
-        <!-- ========== 统计卡片 ========== -->
+        <!-- 统计卡片 -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">总提醒数</div>
                 <div class="stat-value" id="statTotal">0</div>
-                <div class="stat-desc">所有启用项目</div>
+                <div class="stat-desc" style="color: #64748b; font-size: 0.75rem;">所有启用项目</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">今日到期</div>
                 <div class="stat-value" id="statDue">0</div>
-                <div class="stat-desc">需要立即处理</div>
+                <div class="stat-desc" style="color: #64748b; font-size: 0.75rem;">需要立即处理</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">进行中</div>
                 <div class="stat-value" id="statActive">0</div>
-                <div class="stat-desc">未到期项目</div>
+                <div class="stat-desc" style="color: #64748b; font-size: 0.75rem;">未到期项目</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">检查频率</div>
                 <div class="stat-value">3</div>
-                <div class="stat-desc">分钟/次 (Actions)</div>
+                <div class="stat-desc" style="color: #64748b; font-size: 0.75rem;">分钟/次 (Actions)</div>
             </div>
         </div>
 
-        <!-- ========== GitHub配置卡片 ========== -->
+        <!-- GitHub配置卡片 - 简化版，只保留必要字段 -->
         <div class="card">
             <div class="card-header">
                 <i class="fab fa-github"></i>
-                <h2>GitHub Actions 配置（核心）</h2>
+                <h2>GitHub 配置</h2>
             </div>
             
             <div class="github-config">
@@ -553,42 +446,21 @@
                         <div style="display: flex; gap: 8px;">
                             <input type="password" id="githubToken" value="" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
                             <button class="btn btn-success" onclick="saveGitHubConfig()" style="white-space: nowrap;">
-                                <i class="fas fa-save"></i> 保存Token
+                                <i class="fas fa-save"></i> 保存
                             </button>
                         </div>
-                        <div style="color: #fbbf24; font-size: 0.8rem; margin-top: 6px;">
-                            <i class="fas fa-exclamation-triangle"></i> 
-                            <strong>必填！</strong> 需要repo权限的Token，
-                            <a href="https://github.com/settings/tokens" target="_blank" style="color: #60a5fa;">点击这里创建</a>
+                        <div style="color: #94a3b8; font-size: 0.8rem; margin-top: 6px;">
+                            <i class="fas fa-info-circle"></i> 
+                            需要repo权限，用于读写reminders.json
                         </div>
-                    </div>
-
-                    <div style="color: #94a3b8;">
-                        <i class="fas fa-telegram"></i> 机器人Token
-                    </div>
-                    <div>
-                        <input type="password" id="telegramBotToken" value="" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
-                        <div style="color: #94a3b8; font-size: 0.75rem; margin-top: 4px;">从 @BotFather 获取</div>
-                    </div>
-
-                    <div style="color: #94a3b8;">
-                        <i class="fas fa-user"></i> 接收者ID
-                    </div>
-                    <div>
-                        <input type="text" id="telegramChatId" value="" placeholder="123456789" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
-                        <div style="color: #94a3b8; font-size: 0.75rem; margin-top: 4px;">从 @userinfobot 获取</div>
                     </div>
                 </div>
             </div>
 
             <div class="btn-group">
-                <button class="btn btn-primary" onclick="createActionsWorkflow()">
-                    <i class="fas fa-file-code"></i>
-                    一键创建 Actions 工作流
-                </button>
-                <button class="btn btn-success" onclick="syncToGitHub()">
+                <button class="btn btn-primary" onclick="syncToGitHub()">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    保存提醒数据到GitHub
+                    保存提醒到GitHub
                 </button>
                 <button class="btn btn-outline" onclick="loadFromGitHub()">
                     <i class="fas fa-cloud-download-alt"></i>
@@ -619,7 +491,7 @@
             </div>
         </div>
 
-        <!-- ========== 添加提醒卡片 ========== -->
+        <!-- 添加提醒卡片 -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-plus-circle"></i>
@@ -655,7 +527,7 @@
             </div>
         </div>
 
-        <!-- ========== 提醒列表卡片 ========== -->
+        <!-- 提醒列表卡片 -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-list-check"></i>
@@ -681,10 +553,16 @@
         </div>
     </div>
 
-    <!-- ========== 通知区域 ========== -->
+    <!-- 通知区域 -->
     <div id="notificationArea"></div>
 
     <script>
+        // ==================== 全局变量 ====================
+        let reminders = [];
+        let githubAPI = null;
+        let lastSyncTime = null;
+        let currentSHA = null;
+
         // ==================== GitHub API 类 ====================
         class GitHubAPI {
             constructor(username, repo, token) {
@@ -694,19 +572,19 @@
                 this.baseUrl = `https://api.github.com/repos/${username}/${repo}`;
             }
 
-            // 获取reminders.json文件内容
+            // 获取reminders.json
             async getRemindersFile() {
                 try {
                     const url = `${this.baseUrl}/contents/reminders.json`;
-                    const headers = {
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Authorization': `token ${this.token}`
-                    };
-
-                    const response = await fetch(url, { headers });
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
                     
                     if (response.status === 404) {
-                        return { success: false, exists: false };
+                        return { success: true, exists: false };
                     }
                     
                     if (!response.ok) {
@@ -715,62 +593,50 @@
                     }
 
                     const data = await response.json();
-                    
                     let content = '';
+                    
                     try {
-                        content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+                        content = decodeURIComponent(escape(atob(data.content)));
                     } catch (e) {
-                        content = atob(data.content.replace(/\n/g, ''));
+                        content = atob(data.content);
                     }
 
                     return {
                         success: true,
                         exists: true,
                         content: content,
-                        sha: data.sha,
-                        url: data.html_url
+                        sha: data.sha
                     };
                 } catch (error) {
-                    console.error('GitHub读取失败:', error);
-                    return { 
-                        success: false, 
-                        error: error.message 
-                    };
+                    console.error('读取失败:', error);
+                    return { success: false, error: error.message };
                 }
             }
 
-            // 更新reminders.json文件
+            // 更新reminders.json
             async updateRemindersFile(content, sha = null) {
                 try {
                     if (!sha) {
                         const fileInfo = await this.getRemindersFile();
-                        sha = fileInfo.sha;
+                        if (fileInfo.exists) {
+                            sha = fileInfo.sha;
+                        }
                     }
 
-                    let encodedContent = '';
-                    try {
-                        encodedContent = btoa(unescape(encodeURIComponent(content)));
-                    } catch (e) {
-                        encodedContent = btoa(content);
-                    }
-
-                    const url = `${this.baseUrl}/contents/reminders.json`;
-                    const headers = {
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json',
-                        'Authorization': `token ${this.token}`
-                    };
-
-                    const body = {
-                        message: '📅 更新提醒数据',
-                        content: encodedContent,
-                        sha: sha || undefined
-                    };
-
-                    const response = await fetch(url, {
+                    const encodedContent = btoa(unescape(encodeURIComponent(content)));
+                    
+                    const response = await fetch(`${this.baseUrl}/contents/reminders.json`, {
                         method: 'PUT',
-                        headers: headers,
-                        body: JSON.stringify(body)
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/vnd.github.v3+json'
+                        },
+                        body: JSON.stringify({
+                            message: '更新提醒数据',
+                            content: encodedContent,
+                            sha: sha || undefined
+                        })
                     });
 
                     if (!response.ok) {
@@ -781,145 +647,55 @@
                     const result = await response.json();
                     return {
                         success: true,
-                        sha: result.content.sha,
-                        url: result.content.html_url
+                        sha: result.content.sha
                     };
                 } catch (error) {
-                    console.error('GitHub保存失败:', error);
-                    return {
-                        success: false,
-                        error: error.message
-                    };
-                }
-            }
-
-            // 创建或更新文件
-            async createOrUpdateFile(path, content, commitMessage) {
-                try {
-                    let sha = null;
-                    const fileInfo = await this.getFileInfo(path);
-                    if (fileInfo.success) {
-                        sha = fileInfo.sha;
-                    }
-
-                    let encodedContent = '';
-                    try {
-                        encodedContent = btoa(unescape(encodeURIComponent(content)));
-                    } catch (e) {
-                        encodedContent = btoa(content);
-                    }
-
-                    const url = `${this.baseUrl}/contents/${path}`;
-                    const headers = {
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json',
-                        'Authorization': `token ${this.token}`
-                    };
-
-                    const body = {
-                        message: commitMessage,
-                        content: encodedContent,
-                        sha: sha || undefined
-                    };
-
-                    const response = await fetch(url, {
-                        method: 'PUT',
-                        headers: headers,
-                        body: JSON.stringify(body)
-                    });
-
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.message);
-                    }
-
-                    return { success: true };
-                } catch (error) {
-                    console.error('创建文件失败:', error);
+                    console.error('保存失败:', error);
                     return { success: false, error: error.message };
                 }
             }
 
-            async getFileInfo(path) {
-                try {
-                    const url = `${this.baseUrl}/contents/${path}`;
-                    const headers = {
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Authorization': `token ${this.token}`
-                    };
-
-                    const response = await fetch(url, { headers });
-                    if (response.status === 404) {
-                        return { success: false, exists: false };
-                    }
-                    if (!response.ok) {
-                        return { success: false };
-                    }
-                    const data = await response.json();
-                    return { success: true, exists: true, sha: data.sha };
-                } catch {
-                    return { success: false };
-                }
-            }
-
-            // 触发GitHub Actions
+            // 触发Actions
             async triggerActions() {
                 try {
-                    const url = `${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`;
-                    const headers = {
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json',
-                        'Authorization': `token ${this.token}`
-                    };
-
-                    const body = {
-                        ref: 'main'
-                    };
-
-                    const response = await fetch(url, {
+                    const response = await fetch(`${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`, {
                         method: 'POST',
-                        headers: headers,
-                        body: JSON.stringify(body)
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/vnd.github.v3+json'
+                        },
+                        body: JSON.stringify({
+                            ref: 'main'
+                        })
                     });
 
-                    return {
-                        success: response.status === 204,
-                        status: response.status
-                    };
+                    return { success: response.status === 204 };
                 } catch (error) {
-                    return {
-                        success: false,
-                        error: error.message
-                    };
+                    return { success: false, error: error.message };
                 }
             }
         }
 
-        // ==================== 全局变量 ====================
-        let reminders = [];
-        let githubAPI = null;
-        let lastSyncTime = null;
-        let currentSHA = null;
-
         // ==================== 初始化 ====================
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成');
+            
             // 设置默认日期
             const today = new Date();
-            today.setHours(today.getHours() + 8);
-            const todayStr = today.toISOString().split('T')[0];
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
             document.getElementById('lastUpdated').value = todayStr;
             
-            // 从 localStorage 加载保存的配置
+            // 加载保存的配置
             const savedUsername = localStorage.getItem('github_username') || 'xiaowei1110000-cmyk';
             const savedRepo = localStorage.getItem('github_repo') || 'telegram-reminder';
             const savedToken = localStorage.getItem('github_token');
-            const savedBotToken = localStorage.getItem('telegram_bot_token') || '';
-            const savedChatId = localStorage.getItem('telegram_chat_id') || '';
             
             document.getElementById('githubUsername').value = savedUsername;
             document.getElementById('githubRepo').value = savedRepo;
-            document.getElementById('telegramBotToken').value = savedBotToken;
-            document.getElementById('telegramChatId').value = savedChatId;
             
             if (savedToken) {
                 document.getElementById('githubToken').value = savedToken;
@@ -927,234 +703,61 @@
                 document.getElementById('tokenStatus').className = 'badge badge-success';
                 
                 githubAPI = new GitHubAPI(savedUsername, savedRepo, savedToken);
-                await loadFromGitHub();
+                
+                // 尝试加载数据
+                setTimeout(function() {
+                    loadFromGitHub();
+                }, 500);
             } else {
-                updateSyncStatus('error', '请先配置Token', '未配置');
+                // 创建默认提醒
                 createDefaultReminders();
             }
-            
-            renderReminders();
         });
 
-        // ==================== Actions工作流创建 ====================
-        async function createActionsWorkflow() {
-            if (!githubAPI) {
-                showNotification('❌ 请先配置并保存Token', 'error');
-                return;
-            }
-
-            const botToken = document.getElementById('telegramBotToken').value.trim();
-            const chatId = document.getElementById('telegramChatId').value.trim();
-
-            if (!botToken || !chatId) {
-                showNotification('❌ 请填写Telegram机器人Token和接收者ID', 'error');
-                return;
-            }
-
-            // 保存Telegram配置
-            localStorage.setItem('telegram_bot_token', botToken);
-            localStorage.setItem('telegram_chat_id', chatId);
-
-            // 创建send-reminder.yml工作流文件
-            const workflowContent = `name: 定时提醒检查
-
-on:
-  schedule:
-    # 每3分钟运行一次
-    - cron: '*/3 * * * *'
-  workflow_dispatch:  # 允许手动触发
-
-jobs:
-  check-and-send:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v3
-
-      - name: 设置Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: 安装依赖
-        run: pip install requests
-
-      - name: 检查并发送提醒
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          python check_reminders.py
-
-      - name: 更新下次提醒时间
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python update_reminders.py
-`;
-
-            // 创建check_reminders.py
-            const checkerContent = `import json
-import os
-import requests
-from datetime import datetime, timedelta
-
-def send_telegram(message):
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
-    
-    if not bot_token or not chat_id:
-        print("❌ 未设置Telegram配置")
-        return False
-    
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    data = {
-        "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "HTML"
-    }
-    
-    try:
-        response = requests.post(url, data=data)
-        return response.status_code == 200
-    except Exception as e:
-        print(f"发送失败: {e}")
-        return False
-
-def main():
-    try:
-        with open('reminders.json', 'r', encoding='utf-8') as f:
-            reminders = json.load(f)
-    except:
-        print("未找到reminders.json")
-        return
-    
-    today = datetime.now().date()
-    today_str = today.strftime('%Y-%m-%d')
-    sent_count = 0
-    
-    for reminder in reminders:
-        if not reminder.get('enabled', True):
-            continue
-            
-        next_date = datetime.strptime(reminder['nextReminder'], '%Y-%m-%d').date()
-        
-        if next_date == today:
-            # 发送提醒
-            message = f"""🔔 <b>提醒到期</b>
-
-📌 名称：{reminder['name']}
-📅 提醒日期：{reminder['nextReminder']}
-⏰ 间隔：{reminder['days']}天
-
-请及时处理！"""
-            
-            if send_telegram(message):
-                sent_count += 1
-                reminder['notified'] = True
-                reminder['lastSentTime'] = datetime.now().isoformat()
-                print(f"✅ 已发送: {reminder['name']}")
-    
-    # 保存更新
-    with open('reminders.json', 'w', encoding='utf-8') as f:
-        json.dump(reminders, f, ensure_ascii=False, indent=2)
-    
-    print(f"📨 共发送 {sent_count} 条提醒")
-
-if __name__ == '__main__':
-    main()
-`;
-
-            // 创建update_reminders.py
-            const updaterContent = `import json
-from datetime import datetime, timedelta
-
-def main():
-    try:
-        with open('reminders.json', 'r', encoding='utf-8') as f:
-            reminders = json.load(f)
-    except:
-        print("未找到reminders.json")
-        return
-    
-    today = datetime.now().date()
-    today_str = today.strftime('%Y-%m-%d')
-    updated_count = 0
-    
-    for reminder in reminders:
-        # 如果今天到期且已通知，更新下次提醒日期
-        if reminder.get('nextReminder') == today_str and reminder.get('notified'):
-            # 计算下次提醒日期
-            next_date = today + timedelta(days=reminder['days'])
-            reminder['lastUpdated'] = today_str
-            reminder['nextReminder'] = next_date.strftime('%Y-%m-%d')
-            reminder['notified'] = False
-            updated_count += 1
-            print(f"✅ 已更新: {reminder['name']} -> {reminder['nextReminder']}")
-    
-    if updated_count > 0:
-        with open('reminders.json', 'w', encoding='utf-8') as f:
-            json.dump(reminders, f, ensure_ascii=False, indent=2)
-        print(f"📝 已更新 {updated_count} 个提醒")
-    
-    # 输出内容，供GitHub Actions捕获
-    with open('reminders.json', 'r', encoding='utf-8') as f:
-        print(f"当前数据: {f.read()}")
-
-if __name__ == '__main__':
-    main()
-`;
-
-            showNotification('⏳ 正在创建工作流文件...', 'info');
-
-            // 创建工作流文件
-            const workflowResult = await githubAPI.createOrUpdateFile(
-                '.github/workflows/send-reminder.yml',
-                workflowContent,
-                '✨ 创建定时提醒工作流'
-            );
-
-            if (!workflowResult.success) {
-                showNotification('❌ 创建工作流失败: ' + workflowResult.error, 'error');
-                return;
-            }
-
-            // 创建checker文件
-            const checkerResult = await githubAPI.createOrUpdateFile(
-                'check_reminders.py',
-                checkerContent,
-                '🤖 添加提醒检查脚本'
-            );
-
-            if (!checkerResult.success) {
-                showNotification('❌ 创建检查脚本失败', 'error');
-                return;
-            }
-
-            // 创建updater文件
-            const updaterResult = await githubAPI.createOrUpdateFile(
-                'update_reminders.py',
-                updaterContent,
-                '🔄 添加提醒更新脚本'
-            );
-
-            if (!updaterResult.success) {
-                showNotification('❌ 创建更新脚本失败', 'error');
-                return;
-            }
-
-            showNotification('✅ Actions工作流创建成功！请继续配置Secrets', 'success');
-            
-            // 提示设置Secrets
-            setTimeout(() => {
-                showNotification('🔐 请在GitHub仓库Settings > Secrets添加TELEGRAM_BOT_TOKEN和TELEGRAM_CHAT_ID', 'warning', 10000);
-            }, 1000);
-        }
-
         // ==================== GitHub同步函数 ====================
-        async function syncToGitHub() {
+        window.saveGitHubConfig = function() {
+            console.log('保存GitHub配置');
+            
+            const username = document.getElementById('githubUsername').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
+            const token = document.getElementById('githubToken').value.trim();
+            
+            if (!username || !repo || !token) {
+                showNotification('请完整填写用户名、仓库名和Token', 'error');
+                return;
+            }
+            
+            // 保存到localStorage
+            localStorage.setItem('github_username', username);
+            localStorage.setItem('github_repo', repo);
+            localStorage.setItem('github_token', token);
+            
+            // 初始化API
+            githubAPI = new GitHubAPI(username, repo, token);
+            
+            // 更新UI
+            document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-key"></i> Token已配置';
+            document.getElementById('tokenStatus').className = 'badge badge-success';
+            
+            updateSyncStatus('success', '配置已保存', '刚刚');
+            showNotification('✅ GitHub配置已保存', 'success');
+            
+            // 加载数据
+            setTimeout(function() {
+                loadFromGitHub();
+            }, 500);
+        };
+
+        window.syncToGitHub = async function() {
+            console.log('同步到GitHub');
+            
             if (!githubAPI) {
                 showNotification('❌ 请先配置并保存Token', 'error');
+                return;
+            }
+            
+            if (!reminders || reminders.length === 0) {
+                showNotification('⚠️ 没有数据可保存', 'warning');
                 return;
             }
             
@@ -1173,14 +776,17 @@ if __name__ == '__main__':
                     throw new Error(result.error);
                 }
             } catch (error) {
+                console.error('同步失败:', error);
                 updateSyncStatus('error', '同步失败', error.message);
                 showNotification('❌ 保存失败: ' + error.message, 'error');
             }
-        }
+        };
 
-        async function loadFromGitHub() {
+        window.loadFromGitHub = async function() {
+            console.log('从GitHub加载');
+            
             if (!githubAPI) {
-                updateSyncStatus('error', '请先配置Token', '未配置');
+                showNotification('❌ 请先配置Token', 'error');
                 return;
             }
             
@@ -1195,57 +801,30 @@ if __name__ == '__main__':
                         reminders = data;
                         currentSHA = result.sha;
                         lastSyncTime = new Date();
-                        updateSyncStatus('success', '加载成功', formatTime(lastSyncTime));
                         renderReminders();
+                        updateSyncStatus('success', '加载成功', formatTime(lastSyncTime));
                         showNotification(`✅ 已从GitHub加载 ${reminders.length} 个提醒`, 'success');
                     } catch (e) {
                         console.error('JSON解析失败:', e);
-                        showNotification('⚠️ GitHub文件格式错误，使用本地数据', 'warning');
+                        showNotification('⚠️ GitHub文件格式错误', 'warning');
                         createDefaultReminders();
                     }
                 } else {
                     updateSyncStatus('success', 'GitHub无数据', '首次运行');
-                    showNotification('ℹ️ GitHub上无数据文件，将创建新文件', 'info');
+                    showNotification('ℹ️ GitHub上无数据文件', 'info');
                     createDefaultReminders();
                 }
             } catch (error) {
+                console.error('加载失败:', error);
                 updateSyncStatus('error', '加载失败', error.message);
                 showNotification('❌ 加载失败: ' + error.message, 'error');
                 createDefaultReminders();
             }
-        }
+        };
 
-        // 保存GitHub配置
-        function saveGitHubConfig() {
-            const username = document.getElementById('githubUsername').value.trim();
-            const repo = document.getElementById('githubRepo').value.trim();
-            const token = document.getElementById('githubToken').value.trim();
-            const botToken = document.getElementById('telegramBotToken').value.trim();
-            const chatId = document.getElementById('telegramChatId').value.trim();
+        window.triggerActions = async function() {
+            console.log('触发Actions');
             
-            if (!username || !repo || !token) {
-                showNotification('请完整填写用户名、仓库名和Token', 'error');
-                return;
-            }
-            
-            localStorage.setItem('github_username', username);
-            localStorage.setItem('github_repo', repo);
-            localStorage.setItem('github_token', token);
-            
-            if (botToken) localStorage.setItem('telegram_bot_token', botToken);
-            if (chatId) localStorage.setItem('telegram_chat_id', chatId);
-            
-            githubAPI = new GitHubAPI(username, repo, token);
-            
-            document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-key"></i> Token已配置';
-            document.getElementById('tokenStatus').className = 'badge badge-success';
-            
-            showNotification('✅ GitHub配置已保存', 'success');
-            
-            setTimeout(() => loadFromGitHub(), 500);
-        }
-
-        async function triggerActions() {
             if (!githubAPI) {
                 showNotification('❌ 请先配置Token', 'error');
                 return;
@@ -1253,15 +832,18 @@ if __name__ == '__main__':
             
             showNotification('⏳ 正在触发GitHub Actions...', 'info');
             const result = await githubAPI.triggerActions();
+            
             if (result.success) {
                 showNotification('✅ 已触发手动检查，3分钟内会收到提醒', 'success');
             } else {
-                showNotification('❌ 触发失败: ' + result.error, 'error');
+                showNotification('❌ 触发失败: ' + (result.error || '未知错误'), 'error');
             }
-        }
+        };
 
-        // ==================== 提醒管理函数 ====================
-        function addReminder() {
+        // ==================== 提醒管理 ====================
+        window.addReminder = function() {
+            console.log('添加提醒');
+            
             const name = document.getElementById('reminderName').value.trim();
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
@@ -1281,9 +863,13 @@ if __name__ == '__main__':
                 return;
             }
             
-            const nextDate = new Date(lastUpdated);
-            nextDate.setDate(nextDate.getDate() + days);
-            const nextStr = nextDate.toISOString().split('T')[0];
+            // 计算下次提醒日期
+            const date = new Date(lastUpdated);
+            date.setDate(date.getDate() + days);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const nextStr = `${year}-${month}-${day}`;
             
             const newReminder = {
                 id: Date.now(),
@@ -1291,10 +877,8 @@ if __name__ == '__main__':
                 lastUpdated: lastUpdated,
                 nextReminder: nextStr,
                 days: days,
-                createdAt: new Date().toISOString(),
                 enabled: true,
-                notified: false,
-                lastSentTime: null
+                notified: false
             };
             
             reminders.push(newReminder);
@@ -1302,95 +886,154 @@ if __name__ == '__main__':
             
             showNotification(`✅ 已添加: ${name}`, 'success');
             
+            // 清空表单
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
             
-            setTimeout(() => syncToGitHub(), 500);
-        }
+            // 自动保存
+            setTimeout(function() {
+                if (githubAPI) {
+                    syncToGitHub();
+                }
+            }, 500);
+        };
 
-        function markAsDone(id) {
+        window.markAsDone = function(id) {
+            console.log('标记完成:', id);
+            
             const reminder = reminders.find(r => r.id === id);
             if (reminder) {
                 const today = new Date();
-                today.setHours(today.getHours() + 8);
-                const todayStr = today.toISOString().split('T')[0];
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
                 
                 const nextDate = new Date(todayStr);
                 nextDate.setDate(nextDate.getDate() + reminder.days);
+                const nextYear = nextDate.getFullYear();
+                const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+                const nextDay = String(nextDate.getDate()).padStart(2, '0');
                 
                 reminder.lastUpdated = todayStr;
-                reminder.nextReminder = nextDate.toISOString().split('T')[0];
+                reminder.nextReminder = `${nextYear}-${nextMonth}-${nextDay}`;
                 reminder.notified = false;
-                reminder.lastSentTime = null;
                 
                 renderReminders();
-                showNotification(`✅ ${reminder.name} 已更新，下次提醒: ${reminder.nextReminder}`, 'success');
+                showNotification(`✅ ${reminder.name} 已更新`, 'success');
                 
-                setTimeout(() => syncToGitHub(), 500);
+                setTimeout(function() {
+                    if (githubAPI) {
+                        syncToGitHub();
+                    }
+                }, 500);
             }
-        }
+        };
 
-        function deleteReminder(id) {
+        window.deleteReminder = function(id) {
+            console.log('删除提醒:', id);
+            
             if (confirm('确定要删除这个提醒吗？')) {
                 reminders = reminders.filter(r => r.id !== id);
                 renderReminders();
                 showNotification('✅ 已删除', 'success');
                 
-                setTimeout(() => syncToGitHub(), 500);
+                setTimeout(function() {
+                    if (githubAPI) {
+                        syncToGitHub();
+                    }
+                }, 500);
             }
-        }
+        };
 
-        function editReminder(id) {
+        window.editReminder = function(id) {
+            console.log('编辑提醒:', id);
+            
             const reminder = reminders.find(r => r.id === id);
             if (reminder) {
                 document.getElementById('reminderName').value = reminder.name;
                 document.getElementById('lastUpdated').value = reminder.lastUpdated;
                 document.getElementById('reminderDays').value = reminder.days;
                 
-                deleteReminder(id);
+                // 删除原提醒
+                reminders = reminders.filter(r => r.id !== id);
+                renderReminders();
+                
                 showNotification('正在编辑: ' + reminder.name, 'info');
             }
-        }
+        };
 
-        function clearAllReminders() {
+        window.clearAllReminders = function() {
+            console.log('清空所有');
+            
             if (confirm('⚠️ 确定要清空所有提醒吗？此操作不可撤销！')) {
                 reminders = [];
                 renderReminders();
                 showNotification('✅ 已清空所有提醒', 'success');
                 
-                setTimeout(() => syncToGitHub(), 500);
+                setTimeout(function() {
+                    if (githubAPI) {
+                        syncToGitHub();
+                    }
+                }, 500);
             }
-        }
+        };
 
-        function clearForm() {
+        window.clearForm = function() {
+            console.log('清空表单');
+            
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
+            
             const today = new Date();
-            today.setHours(today.getHours() + 8);
-            document.getElementById('lastUpdated').value = today.toISOString().split('T')[0];
-        }
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('lastUpdated').value = `${year}-${month}-${day}`;
+        };
 
-        function exportLocalFile() {
+        window.exportLocalFile = function() {
+            console.log('导出备份');
+            
+            if (!reminders || reminders.length === 0) {
+                showNotification('没有数据可导出', 'warning');
+                return;
+            }
+            
             const content = JSON.stringify(reminders, null, 2);
             const blob = new Blob([content], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `reminders-backup-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            a.download = `reminders-${year}${month}${day}.json`;
+            
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            
             showNotification('✅ 已导出备份文件', 'success');
-        }
+        };
 
         function createDefaultReminders() {
+            console.log('创建默认提醒');
+            
             const today = new Date();
-            today.setHours(today.getHours() + 8);
-            const todayStr = today.toISOString().split('T')[0];
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
             
             const nextDate = new Date(todayStr);
             nextDate.setDate(nextDate.getDate() + 3);
+            const nextYear = nextDate.getFullYear();
+            const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+            const nextDay = String(nextDate.getDate()).padStart(2, '0');
             
             reminders = [
                 {
@@ -1399,29 +1042,27 @@ if __name__ == '__main__':
                     lastUpdated: todayStr,
                     nextReminder: todayStr,
                     days: 3,
-                    createdAt: new Date().toISOString(),
                     enabled: true,
-                    notified: false,
-                    lastSentTime: null
+                    notified: false
                 },
                 {
                     id: Date.now() + 1,
                     name: '🔒 SSL证书续期',
                     lastUpdated: todayStr,
-                    nextReminder: nextDate.toISOString().split('T')[0],
+                    nextReminder: `${nextYear}-${nextMonth}-${nextDay}`,
                     days: 7,
-                    createdAt: new Date().toISOString(),
                     enabled: true,
-                    notified: false,
-                    lastSentTime: null
+                    notified: false
                 }
             ];
             
             renderReminders();
         }
 
-        // ==================== 渲染函数 ====================
+        // ==================== 渲染 ====================
         function renderReminders() {
+            console.log('渲染提醒列表，数量:', reminders.length);
+            
             const container = document.getElementById('reminderList');
             
             if (!reminders || reminders.length === 0) {
@@ -1440,20 +1081,31 @@ if __name__ == '__main__':
             }
             
             const today = new Date();
-            today.setHours(today.getHours() + 8);
-            const todayStr = today.toISOString().split('T')[0];
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
             
             let html = '';
             let dueCount = 0;
             
-            reminders.filter(r => r.enabled !== false).forEach(reminder => {
+            reminders.forEach(reminder => {
                 const isDue = reminder.nextReminder === todayStr;
                 if (isDue) dueCount++;
                 
                 const dueClass = isDue ? 'due' : '';
-                const nextDate = new Date(reminder.nextReminder);
-                nextDate.setDate(nextDate.getDate() + reminder.days);
-                const nextStr = nextDate.toISOString().split('T')[0];
+                
+                // 格式化日期显示
+                const lastDate = formatDate(reminder.lastUpdated);
+                const nextDate = formatDate(reminder.nextReminder);
+                
+                // 计算下个周期
+                const nextCycleDate = new Date(reminder.nextReminder);
+                nextCycleDate.setDate(nextCycleDate.getDate() + reminder.days);
+                const nextCycleYear = nextCycleDate.getFullYear();
+                const nextCycleMonth = String(nextCycleDate.getMonth() + 1).padStart(2, '0');
+                const nextCycleDay = String(nextCycleDate.getDate()).padStart(2, '0');
+                const nextCycleStr = `${nextCycleYear}-${nextCycleMonth}-${nextCycleDay}`;
                 
                 html += `
                     <div class="reminder-card ${dueClass}">
@@ -1468,11 +1120,11 @@ if __name__ == '__main__':
                         <div class="reminder-meta">
                             <div>
                                 <div class="meta-label">最后更新</div>
-                                <div class="meta-value">${formatDate(reminder.lastUpdated)}</div>
+                                <div class="meta-value">${lastDate}</div>
                             </div>
                             <div>
                                 <div class="meta-label">下次提醒</div>
-                                <div class="meta-value ${isDue ? 'due' : ''}">${formatDate(reminder.nextReminder)}</div>
+                                <div class="meta-value ${isDue ? 'due' : ''}">${nextDate}</div>
                             </div>
                             <div>
                                 <div class="meta-label">间隔天数</div>
@@ -1480,7 +1132,7 @@ if __name__ == '__main__':
                             </div>
                             <div>
                                 <div class="meta-label">下个周期</div>
-                                <div class="meta-value">${formatDate(nextStr)}</div>
+                                <div class="meta-value">${formatDate(nextCycleStr)}</div>
                             </div>
                         </div>
                         
@@ -1506,48 +1158,59 @@ if __name__ == '__main__':
 
         function updateStats() {
             const today = new Date();
-            today.setHours(today.getHours() + 8);
-            const todayStr = today.toISOString().split('T')[0];
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
             
-            const total = reminders.filter(r => r.enabled !== false).length;
-            const due = reminders.filter(r => r.enabled !== false && r.nextReminder === todayStr).length;
-            const active = reminders.filter(r => r.enabled !== false && r.nextReminder > todayStr).length;
+            const total = reminders.length;
+            const due = reminders.filter(r => r.nextReminder === todayStr).length;
+            const active = reminders.filter(r => r.nextReminder > todayStr).length;
             
             document.getElementById('statTotal').textContent = total;
             document.getElementById('statDue').textContent = due;
             document.getElementById('statActive').textContent = active;
-            document.getElementById('dueCount').textContent = due;
         }
 
         // ==================== 工具函数 ====================
         function formatDate(dateStr) {
-            const today = new Date();
-            today.setHours(today.getHours() + 8);
-            const todayStr = today.toISOString().split('T')[0];
+            if (!dateStr) return '未知';
             
-            const date = new Date(dateStr);
-            date.setHours(date.getHours() + 8);
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
             
             if (dateStr === todayStr) return '今天';
             
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-            const weekday = weekdays[date.getDay()];
-            
-            return `${month}月${day}日 ${weekday}`;
+            try {
+                const date = new Date(dateStr);
+                const month2 = date.getMonth() + 1;
+                const day2 = date.getDate();
+                const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                const weekday = weekdays[date.getDay()];
+                return `${month2}月${day2}日 ${weekday}`;
+            } catch {
+                return dateStr;
+            }
         }
 
         function formatTime(date) {
             if (!date) return '从未';
-            const d = new Date(date);
-            const now = new Date();
-            const diff = Math.floor((now - d) / 1000 / 60);
             
-            if (diff < 1) return '刚刚';
-            if (diff < 60) return `${diff}分钟前`;
-            if (diff < 1440) return `${Math.floor(diff / 60)}小时前`;
-            return d.toLocaleDateString('zh-CN');
+            try {
+                const d = new Date(date);
+                const now = new Date();
+                const diff = Math.floor((now - d) / 1000 / 60);
+                
+                if (diff < 1) return '刚刚';
+                if (diff < 60) return `${diff}分钟前`;
+                if (diff < 1440) return `${Math.floor(diff / 60)}小时前`;
+                return `${Math.floor(diff / 1440)}天前`;
+            } catch {
+                return '未知';
+            }
         }
 
         function updateSyncStatus(status, text, time = null) {
@@ -1556,6 +1219,7 @@ if __name__ == '__main__':
             const syncTime = document.getElementById('syncTime');
             
             indicator.className = 'sync-indicator';
+            
             if (status === 'success') {
                 indicator.classList.add('success');
                 syncText.innerHTML = '<span style="color: #34d399;">✓ 同步状态: ' + text + '</span>';
@@ -1572,11 +1236,10 @@ if __name__ == '__main__':
             }
         }
 
-        function showNotification(message, type = 'info', duration = 5000) {
-            const area = document.getElementById('notificationArea');
+        function showNotification(message, type = 'info') {
+            console.log('通知:', message, type);
             
-            const existing = document.querySelector('.notification');
-            if (existing) existing.remove();
+            const area = document.getElementById('notificationArea');
             
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
@@ -1594,12 +1257,13 @@ if __name__ == '__main__':
             
             area.appendChild(notification);
             
-            setTimeout(() => notification.classList.add('show'), 10);
             setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 300);
-            }, duration);
+                notification.remove();
+            }, 5000);
         }
+
+        // 暴露全局函数
+        window.createDefaultReminders = createDefaultReminders;
     </script>
 </body>
 </html>
