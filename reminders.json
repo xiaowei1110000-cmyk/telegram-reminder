@@ -1,13 +1,10 @@
 [
   {
-    "id": 1770889447499,
+    "id": 1770899568631,
     "name": "1111",
-    "lastUpdated": "2026-02-12",
-    "nextReminder": "2026-02-14",
+    "lastUpdated": "2026-02-10",
+    "nextReminder": "2026-02-12",
     "days": 2,
-    "createdAt": "2026-02-12T09:44:07.499Z",
-    "enabled": true,
-    "notified": false,
-    "lastSentTime": "2026-02-12T11:59:54+00:00"
+    "notified": false
   }
 ]
