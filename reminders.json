@@ -6,16 +6,16 @@
     "nextReminder": "2026-02-12",
     "days": 2,
     "notified": true,
-    "lastSentTime": "2026-02-12T20:50:03+08:00"
+    "lastSentTime": "2026-02-12T20:40:15+08:00"
   },
   {
-    "id": 1770900581397,
-    "name": "111111",
+    "id": 1770900642184,
+    "name": "sdad",
     "lastUpdated": "2026-02-10",
-    "nextReminder": "2026-02-13",
-    "days": 3,
+    "nextReminder": "2026-02-12",
+    "days": 2,
     "enabled": true,
     "notified": false,
-    "createdAt": "2026-02-12T12:49:41.397Z"
+    "createdAt": "2026-02-12T12:50:42.184Z"
   }
 ]
