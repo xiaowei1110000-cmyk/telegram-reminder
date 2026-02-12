@@ -2,12 +2,12 @@
   {
     "id": 1770904642673,
     "name": "111111111",
-    "lastUpdated": "2026-02-10",
-    "nextReminder": "2026-02-12",
+    "lastUpdated": "2026-02-12",
+    "nextReminder": "2026-02-14",
     "days": 2,
     "enabled": true,
-    "notified": false,
+    "notified": true,
     "createdAt": "2026-02-12T13:57:22.673Z",
-    "lastSentTime": null
+    "lastSentTime": "2026-02-12T21:57:47+08:00"
   }
 ]
