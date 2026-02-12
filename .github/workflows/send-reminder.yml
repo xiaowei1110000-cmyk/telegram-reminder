@@ -1,34 +1,132 @@
-name: Telegram定时提醒
+# ============================================
+# GitHub定时提醒系统 - 自动化工作流
+# 功能：每天11:00自动检查并发送Telegram提醒
+# 文件位置：.github/workflows/send-reminder.yml
+# ============================================
 
+name: 🤖 定时Telegram提醒
+
+# 触发条件
 on:
+  # 1. 定时触发 - 每天北京时间11:00
   schedule:
-    - cron: '*/5 * * * *'  # 每5分钟运行一次
-  workflow_dispatch:        # 手动触发
+    - cron: '0 3 * * *'     # UTC时间03:00 = 北京时间11:00
+  
+  # 2. 手动触发 - 用于测试
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '手动触发原因'
+        required: false
+        default: '手动测试运行'
+      environment:
+        description: '运行环境'
+        required: false
+        default: 'production'
 
+# 权限设置
+permissions:
+  contents: write          # 允许写入仓库（更新reminders.json）
+  actions: read           # 允许读取actions信息
+  issues: read           # 允许读取issues（备用）
+
+# 环境变量
+env:
+  TZ: Asia/Shanghai      # 设置时区为北京时间
+  NODE_VERSION: '18'     # Node.js版本
+
+# 工作任务
 jobs:
-  send-reminder:
+  send-telegram-reminder:
+    name: 📨 发送提醒
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    
+    # 步骤定义
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-      
-      - name: 设置Node.js
-        uses: actions/setup-node@v4
+      # 步骤1：检出代码
+      - name: 📥 1. 检出仓库代码
+        uses: actions/checkout@v3
         with:
-          node-version: '22'
+          fetch-depth: 0          # 获取完整历史
+          token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: 执行提醒脚本
+      # 步骤2：设置Node.js
+      - name: 🔧 2. 配置Node.js环境
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'           # 缓存node_modules
+      
+      # 步骤3：安装依赖
+      - name: 📦 3. 安装项目依赖
+        run: |
+          echo "⏳ 正在安装node-fetch..."
+          npm install node-fetch@2
+          echo "✅ 依赖安装完成"
+      
+      # 步骤4：检查当前状态
+      - name: 🔍 4. 检查系统状态
+        run: |
+          echo "════════════════════════════════════════"
+          echo "🤖 GitHub Actions 定时任务已启动"
+          echo "📅 北京时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
+          echo "📁 当前目录: $(pwd)"
+          echo "📄 文件列表:"
+          ls -la
+          echo "════════════════════════════════════════"
+      
+      # 步骤5：执行提醒脚本（核心）
+      - name: 🤖 5. 执行提醒检查脚本
+        id: reminder
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: node scripts/send-reminder.js
-      
-      - name: 提交更新
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data/reminders.json reminders.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "自动更新提醒状态 [skip ci]"
-          git push
+          echo "⏳ 开始执行提醒脚本..."
+          node scripts/send-reminder.js
+          echo "✅ 脚本执行完成"
+      
+      # 步骤6：提交更新到仓库
+      - name: 💾 6. 保存更新到GitHub
+        run: |
+          # 配置Git用户（使用actions机器人）
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 添加reminders.json到暂存区
+          git add reminders.json
+          
+          # 检查是否有变化
+          if git diff --staged --quiet; then
+            echo "ℹ️ reminders.json 没有变化，跳过提交"
+          else
+            # 提交更改
+            git commit -m "📅 自动更新提醒状态 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')] [skip ci]"
+            
+            # 推送到仓库
+            git push
+            echo "✅ 已成功提交更新到仓库"
+            
+            # 显示更新内容
+            echo "📊 更新摘要:"
+            git show --stat
+          fi
+      
+      # 步骤7：发送成功通知（可选）
+      - name: 📢 7. 任务完成通知
+        if: success()
+        run: |
+          echo "🎉 恭喜！所有步骤执行成功！"
+          echo "⏰ 执行时间: $(TZ='Asia/Shanghai' date)"
+          echo "📨 Telegram提醒已发送（如有到期项目）"
+      
+      # 步骤8：错误处理
+      - name: ❌ 8. 错误处理
+        if: failure()
+        run: |
+          echo "⚠️ 任务执行失败，请检查："
+          echo "1. GitHub Secrets是否正确配置"
+          echo "2. Telegram Bot Token是否有效"
+          echo "3. reminders.json格式是否正确"
+          exit 1
