@@ -53,48 +53,11 @@ function formatDate(dateStr) {
 
 // ==================== Telegram消息发送 ====================
 
-async function sendTelegramMessage(reminders, dueReminders) {
+async function sendTelegramMessage(message) {
     if (!TOKEN || !CHAT_ID) {
         console.error('❌ 未配置Telegram');
         return false;
     }
-
-    const today = getTodayString();
-    let message = '';
-    
-    // ========== 头部框线 ==========
-    message += `╔════════════════════════════╗\n`;
-    message += `║  🔔 域名更换提醒 \n`;
-    message += `╚════════════════════════════╝\n\n`;
-    
-    // ========== 每个项目的卡片（只显示群组名称） ==========
-    dueReminders.forEach((item, index) => {
-        const nextDate = getNextDate(today, item.days);
-        
-        message += `┌─[ #${index + 1} ${item.name} ]\n`;
-        message += `│  📅 上次更新 · ⚪️ ${formatDate(item.lastUpdated)}\n`;
-        message += `│  ⏰ 提醒时间 · 🔴 今天\n`;
-        message += `│  📊 间隔周期 · ${item.days}天\n`;
-        message += `│  ⏩ 下次提醒 · 🔴 ${formatDate(nextDate)}\n`;
-        message += `│  ⏱️ 剩余时间 · ⚠️ 今日到期\n`;
-        message += `└⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯┘\n\n`;
-    });
-    
-    // ========== 今日需要处理项目（每个项目单独一行） ==========
-    message += `📊 今日需要处理项目\n`;
-    
-    dueReminders.forEach((item) => {
-        message += `├─ 到期项目: ${item.name}\n`;
-    });
-    
-    // ========== 底部 ==========
-    message += `\n⚡️ 发送时间 ${new Date().toLocaleString('zh-CN', { 
-        timeZone: 'Asia/Shanghai',
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    })}`;
 
     return new Promise((resolve) => {
         const data = JSON.stringify({
@@ -142,7 +105,9 @@ async function main() {
     console.log('='.repeat(50) + '\n');
     
     const today = getTodayString();
-    console.log(`  📅 北京时间: ${today}\n`);
+    console.log(`  📅 北京时间: ${today}`);
+    console.log(`  🤖 Bot Token: ${TOKEN ? '已配置' : '未配置'}`);
+    console.log(`  👤 Chat ID: ${CHAT_ID ? '已配置' : '未配置'}\n`);
     
     // 1. 读取数据
     let reminders = [];
@@ -151,7 +116,6 @@ async function main() {
         if (fs.existsSync(rootFile)) {
             reminders = JSON.parse(fs.readFileSync(rootFile, 'utf8'));
             
-            // 修复日期格式
             reminders.forEach(r => {
                 if (r.nextReminder) r.nextReminder = fixDate(r.nextReminder);
                 if (r.lastUpdated) r.lastUpdated = fixDate(r.lastUpdated);
@@ -163,11 +127,26 @@ async function main() {
             
             console.log(`  📖 已加载 ${reminders.length} 个提醒`);
         } else {
-            // 默认数据
             reminders = [
                 {
                     id: Date.now(),
                     name: "111",
+                    lastUpdated: "2026-02-11",
+                    nextReminder: today,
+                    days: 1,
+                    enabled: true
+                },
+                {
+                    id: Date.now() + 1,
+                    name: "备案调用",
+                    lastUpdated: "2026-02-11",
+                    nextReminder: today,
+                    days: 1,
+                    enabled: true
+                },
+                {
+                    id: Date.now() + 2,
+                    name: "网页版(IP)",
                     lastUpdated: "2026-02-11",
                     nextReminder: today,
                     days: 1,
@@ -185,14 +164,46 @@ async function main() {
     const dueReminders = reminders.filter(r => r.enabled && r.nextReminder === today);
     console.log(`  🔍 今日到期: ${dueReminders.length} 个\n`);
     
-    // 3. 发送消息并自动更新
-    let sendSuccess = false;
+    // 3. 构建消息
+    let message = '';
     
     if (dueReminders.length > 0) {
-        // 发送提醒
-        sendSuccess = await sendTelegramMessage(reminders, dueReminders);
+        // ========== 头部框线 ==========
+        message += `╔════════════════════════════╗\n`;
+        message += `║  🔔 域名更换提醒 \n`;
+        message += `╚════════════════════════════╝\n\n`;
         
-        if (sendSuccess) {
+        // ========== 每个项目的卡片 ==========
+        dueReminders.forEach((item, index) => {
+            const nextDate = getNextDate(today, item.days);
+            
+            message += `┌─[ #${index + 1} ${item.name} ]\n`;
+            message += `│  📅 上次更新 · ⚪️ ${formatDate(item.lastUpdated)}\n`;
+            message += `│  ⏰ 提醒时间 · 🔴 今天\n`;
+            message += `│  📊 间隔周期 · ${item.days}天\n`;
+            message += `│  ⏩ 下次提醒 · 🔴 ${formatDate(nextDate)}\n`;
+            message += `│  ⏱️ 剩余时间 · ⚠️ 今日到期\n`;
+            message += `└⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯┘\n\n`;
+        });
+        
+        // ========== 今日需要处理项目 ==========
+        message += `📊 今日需要处理项目\n`;
+        dueReminders.forEach((item) => {
+            message += `├─ 到期项目: ${item.name}\n`;
+        });
+        
+        // ========== 发送消息 ==========
+        message += `\n⚡️ 发送时间 ${new Date().toLocaleString('zh-CN', { 
+            timeZone: 'Asia/Shanghai',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })}`;
+        
+        const success = await sendTelegramMessage(message);
+        
+        if (success) {
             // ✅ 自动更新下次提醒日期
             dueReminders.forEach(r => {
                 r.lastUpdated = today;
@@ -202,18 +213,32 @@ async function main() {
             console.log('  ✅ 已自动更新下次提醒日期\n');
         }
     } else {
-        console.log('  ℹ️ 今日无到期提醒，跳过发送\n');
+        // ========== 无到期提醒时发送心跳 ==========
+        message += `💓 系统心跳\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━\n`;
+        message += `📅 ${today}\n`;
+        message += `✅ 今日无到期提醒\n`;
+        message += `📊 当前提醒总数: ${reminders.length}个\n`;
+        message += `⏰ 下次检查: 明天 11:00\n`;
+        message += `━━━━━━━━━━━━━━━━━━━━\n`;
+        message += `⚡️ ${new Date().toLocaleString('zh-CN', { 
+            timeZone: 'Asia/Shanghai',
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit'
+        })}`;
+        
+        await sendTelegramMessage(message);
+        console.log('  ℹ️ 今日无到期提醒，已发送心跳\n');
     }
     
     // 4. 保存数据
     try {
-        // 确保日期格式正确
         reminders.forEach(r => {
             if (r.nextReminder) r.nextReminder = fixDate(r.nextReminder);
             if (r.lastUpdated) r.lastUpdated = fixDate(r.lastUpdated);
         });
         
-        // 保存到 data 目录
         const dataDir = path.join(__dirname, '..', 'data');
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true });
@@ -225,7 +250,6 @@ async function main() {
             'utf8'
         );
         
-        // 保存到根目录
         fs.writeFileSync(
             path.join(__dirname, '..', 'reminders.json'),
             JSON.stringify(reminders, null, 2),
