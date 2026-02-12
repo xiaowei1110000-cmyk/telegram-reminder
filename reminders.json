@@ -41,6 +41,7 @@
     "createdAt": "2026-02-12T06:35:23.832Z",
     "lastNotified": null,
     "notified": false,
-    "enabled": true
+    "enabled": true,
+    "lastSentTime": "2026-02-12T06:47:31.288Z"
   }
 ]
