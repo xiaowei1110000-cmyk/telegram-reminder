@@ -6,7 +6,7 @@
     "nextReminder": "2026-02-12",
     "days": 2,
     "notified": true,
-    "lastSentTime": "2026-02-12T20:51:05+08:00"
+    "lastSentTime": "2026-02-12T20:40:15+08:00"
   },
   {
     "id": 1770900642184,
@@ -15,8 +15,37 @@
     "nextReminder": "2026-02-12",
     "days": 2,
     "enabled": true,
-    "notified": true,
-    "createdAt": "2026-02-12T12:50:42.184Z",
-    "lastSentTime": "2026-02-12T20:51:05+08:00"
+    "notified": false,
+    "createdAt": "2026-02-12T12:50:42.184Z"
+  },
+  {
+    "id": 1770900660755,
+    "name": "zjxknc",
+    "lastUpdated": "2026-02-09",
+    "nextReminder": "2026-02-12",
+    "days": 3,
+    "enabled": true,
+    "notified": false,
+    "createdAt": "2026-02-12T12:51:00.755Z"
+  },
+  {
+    "id": 1770900663433,
+    "name": "32849019-23",
+    "lastUpdated": "2026-02-09",
+    "nextReminder": "2026-02-12",
+    "days": 3,
+    "enabled": true,
+    "notified": false,
+    "createdAt": "2026-02-12T12:51:03.433Z"
+  },
+  {
+    "id": 1770900666733,
+    "name": "8903-12312",
+    "lastUpdated": "2026-02-09",
+    "nextReminder": "2026-02-12",
+    "days": 3,
+    "enabled": true,
+    "notified": false,
+    "createdAt": "2026-02-12T12:51:06.733Z"
   }
 ]
