@@ -1,6 +1,6 @@
 # ============================================
-# GitHub定时提醒系统 - 自动化工作流
-# 功能：每天11:00自动运行，永不间断
+# GitHub定时提醒系统 - 每3分钟检查一次
+# 功能：到达提醒日后，每3分钟发送一次提醒
 # 作者：xiaowei1110000-cmyk
 # ============================================
 
@@ -8,14 +8,14 @@ name: 🚀 自动提醒系统
 
 # 触发条件
 on:
-  # 1. 定时触发 - 每天北京时间11:00
+  # 1. 每3分钟运行一次
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '*/3 * * * *'     # 每3分钟执行一次
   
   # 2. 手动触发 - 用于测试
   workflow_dispatch:
 
-# 权限设置 - 必须要有写入权限
+# 权限设置
 permissions:
   contents: write
   actions: read
@@ -55,12 +55,12 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "⏰ 开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "⏰ 检查时间: $(date '+%Y-%m-%d %H:%M:%S')"
           echo "📅 今日日期: $(TZ='Asia/Shanghai' date '+%Y-%m-%d')"
           
           # 创建并执行脚本
           cat > reminder.js << 'EOF'
-// ==================== 核心提醒系统 ====================
+// ==================== 每3分钟提醒系统 ====================
 const fs = require('fs');
 const fetch = require('node-fetch');
 
@@ -74,7 +74,20 @@ function getBeijingDate() {
     return `${year}-${month}-${day}`;
 }
 
-// 2. 计算下次提醒日期
+// 2. 获取当前北京时间（完整时间）
+function getBeijingTime() {
+    const now = new Date();
+    now.setHours(now.getHours() + 8);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 3. 计算下次提醒日期
 function getNextDate(lastDate, days) {
     const date = new Date(lastDate);
     date.setDate(date.getDate() + days);
@@ -84,11 +97,12 @@ function getNextDate(lastDate, days) {
     return `${year}-${month}-${day}`;
 }
 
-// 3. 主函数
+// 4. 主函数
 async function main() {
     console.log('\n' + '='.repeat(60));
-    console.log('🚀 GitHub定时提醒系统 开始运行');
+    console.log('🚀 每3分钟提醒系统 开始运行');
     console.log('='.repeat(60));
+    console.log(`⏰ 当前时间: ${getBeijingTime()}`);
     
     // 读取数据
     let reminders = [];
@@ -97,18 +111,16 @@ async function main() {
         reminders = JSON.parse(data);
         console.log(`📦 加载提醒: ${reminders.length} 个`);
     } catch (e) {
-        console.log('❌ 读取失败，使用空数据');
-        reminders = [];
+        console.log('❌ 读取失败:', e.message);
+        process.exit(1);
     }
     
     const today = getBeijingDate();
     console.log(`📅 今日日期: ${today}`);
     
-    // 找出今日到期且未提醒的项目
+    // 找出所有今日到期的项目（不管是否已提醒）
     const dueList = reminders.filter(r => {
-        return r.enabled !== false && 
-               r.nextReminder === today && 
-               !r.notified;
+        return r.enabled !== false && r.nextReminder === today;
     });
     
     console.log(`🔔 今日到期: ${dueList.length} 个`);
@@ -119,63 +131,91 @@ async function main() {
         const chatId = process.env.TELEGRAM_CHAT_ID;
         
         if (!token || !chatId) {
-            console.log('❌ 未配置Telegram');
+            console.log('❌ 未配置Telegram Secrets');
+            console.log('请配置: TELEGRAM_BOT_TOKEN 和 TELEGRAM_CHAT_ID');
             process.exit(1);
         }
         
+        // 检查上次发送时间，避免重复发送太频繁
+        const now = Date.now();
+        const THREE_MINUTES = 3 * 60 * 1000; // 3分钟
+        
+        // 过滤出需要发送的项目（3分钟内未发送过的）
+        const needSendList = dueList.filter(item => {
+            if (!item.lastReminderSent) return true;
+            return (now - new Date(item.lastReminderSent).getTime()) > THREE_MINUTES;
+        });
+        
+        if (needSendList.length === 0) {
+            console.log('ℹ️ 所有项目3分钟内已提醒过，跳过本次发送');
+            console.log('='.repeat(60));
+            return;
+        }
+        
+        console.log(`📤 需要发送: ${needSendList.length} 个`);
+        
         // 格式化消息
-        let msg = '🔔 *定时提醒系统*\n';
-        msg += '═══════════════════\n';
+        let msg = '🔔 *⚠️ 紧急提醒：项目已到期！*\n';
+        msg += '═══════════════════════════\n';
         msg += `📅 日期：${today}\n`;
-        msg += `⏰ 时间：${new Date().toLocaleTimeString('zh-CN', {timeZone: 'Asia/Shanghai'})}\n\n`;
-        msg += `*今日需要处理（${dueList.length}项）：*\n\n`;
+        msg += `⏰ 时间：${new Date().toLocaleTimeString('zh-CN', {timeZone: 'Asia/Shanghai'})}\n`;
+        msg += `⏱️ 频率：每3分钟提醒一次\n\n`;
+        msg += `*今日到期项目（${dueList.length}项）：*\n\n`;
         
         dueList.forEach((item, i) => {
             const nextDate = getNextDate(today, item.days);
             msg += `${i+1}. *${item.name}*\n`;
+            msg += `   • 最后更新：${item.lastUpdated}\n`;
+            msg += `   • 状态：⚠️ 已到期\n`;
             msg += `   • 周期：每${item.days}天\n`;
-            msg += `   • 下次：${nextDate}\n\n`;
+            msg += `   • 下次提醒：${nextDate}\n\n`;
             
-            // 更新状态
-            item.lastUpdated = today;
-            item.nextReminder = nextDate;
-            item.notified = true;
-            item.lastNotified = new Date().toISOString();
+            // 更新发送时间戳（但不更新日期，因为还没完成）
+            item.lastReminderSent = new Date().toISOString();
+            item.notified = false; // 保持未完成状态，继续提醒
         });
         
-        msg += '═══════════════════\n';
-        msg += `[管理提醒](https://github.com/${process.env.GITHUB_REPOSITORY})`;
+        msg += '═══════════════════════════\n';
+        msg += '🔄 *系统将每3分钟提醒一次，直到您处理完成*\n';
+        msg += '✅ *处理完成后，请点击下方链接手动更新状态*\n\n';
+        msg += `[⚙️ 点击这里标记已完成]`;
+        msg += `(https://${process.env.GITHUB_REPOSITORY}.github.io)`;
         
         // 发送Telegram
         console.log('📤 发送Telegram消息...');
         const url = `https://api.telegram.org/bot${token}/sendMessage`;
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: msg,
-                parse_mode: 'Markdown',
-                disable_web_page_preview: true
-            })
-        });
         
-        const result = await res.json();
-        
-        if (result.ok) {
-            console.log(`✅ 发送成功: ${dueList.length} 条提醒`);
-            // 保存更新
-            fs.writeFileSync('reminders.json', JSON.stringify(reminders, null, 2));
-            console.log('💾 数据已更新');
-        } else {
-            console.log('❌ 发送失败:', result.description);
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: msg,
+                    parse_mode: 'Markdown',
+                    disable_web_page_preview: false
+                })
+            });
+            
+            const result = await res.json();
+            
+            if (result.ok) {
+                console.log(`✅ 发送成功: ${needSendList.length} 条提醒`);
+                // 保存更新时间戳
+                fs.writeFileSync('reminders.json', JSON.stringify(reminders, null, 2));
+                console.log('💾 发送时间已记录');
+            } else {
+                console.log('❌ 发送失败:', result.description);
+            }
+        } catch (error) {
+            console.log('❌ 发送异常:', error.message);
         }
     } else {
-        console.log('ℹ️ 今日无到期提醒');
+        console.log('ℹ️ 今日无到期项目');
     }
     
     console.log('='.repeat(60));
-    console.log('✨ 执行完成');
+    console.log('✨ 检查完成');
     console.log('='.repeat(60));
 }
 
@@ -184,8 +224,8 @@ EOF
 
           node reminder.js
       
-      # 步骤5: 提交更新
-      - name: 💾 5. 保存到仓库
+      # 步骤5: 提交更新（只更新时间戳，不改变提醒日期）
+      - name: 💾 5. 保存发送记录
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -193,7 +233,7 @@ EOF
           if git diff --staged --quiet; then
             echo "ℹ️ 无数据更新"
           else
-            git commit -m "📅 自动更新提醒 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')]"
+            git commit -m "⏰ 记录提醒发送时间 [$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')]"
             git push
-            echo "✅ 已提交更新"
+            echo "✅ 已提交发送记录"
           fi
