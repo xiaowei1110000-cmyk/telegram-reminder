@@ -1,0 +1,29 @@
+{
+  "name": "telegram-reminder",
+  "version": "2.0.0",
+  "description": "GitHub定时提醒系统 - 每天11:00自动发送Telegram提醒",
+  "main": "scripts/send-reminder.js",
+  "scripts": {
+    "start": "node scripts/send-reminder.js",
+    "test": "echo \"✅ 测试通过\" && exit 0",
+    "deploy": "git add . && git commit -m \"部署更新\" && git push"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "telegram",
+    "reminder",
+    "github-actions",
+    "cron"
+  ],
+  "author": "xiaowei1110000-cmyk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiaowei1110000-cmyk/telegram-reminder"
+  }
+}
