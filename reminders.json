@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": 1770880449624,
+    "name": "📝 网宿IP更新",
+    "lastUpdated": "2026-02-12",
+    "nextReminder": "2026-02-12",
+    "days": 3,
+    "createdAt": "2026-02-12T07:14:09.624Z",
+    "enabled": true,
+    "notified": false,
+    "lastSentTime": null
+  },
+  {
+    "id": 1770880449625,
+    "name": "🔒 SSL证书续期",
+    "lastUpdated": "2026-02-12",
+    "nextReminder": "2026-02-15",
+    "days": 7,
+    "createdAt": "2026-02-12T07:14:09.624Z",
+    "enabled": true,
+    "notified": false,
+    "lastSentTime": null
+  }
+]
