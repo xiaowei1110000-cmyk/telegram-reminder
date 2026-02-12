@@ -2,8 +2,12 @@ name: 定时提醒系统
 
 on:
   schedule:
-    - cron: '*/3 * * * *'   # 每3分钟自动运行，无需手动触发
-  workflow_dispatch:         # 手动触发作为备选
+    - cron: '*/3 * * * *'   # 每3分钟自动运行
+  workflow_dispatch:         # 手动触发
+  push:
+    branches: [ main ]
+    paths:
+      - 'reminders.json'     # 数据变更时自动触发
 
 jobs:
   reminder:
