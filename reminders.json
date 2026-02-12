@@ -43,4 +43,14 @@
     "notified": false,
     "enabled": true
   }
+  {
+    "id": 1234567890,
+    "name": "验证自动化测试",
+    "lastUpdated": "2026-02-12",
+    "nextReminder": "2026-02-12",
+    "days": 1,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "notified": false
+  }
 ]
