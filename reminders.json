@@ -31,16 +31,5 @@
     "lastNotified": null,
     "notified": false,
     "enabled": true
-  },
-  {
-    "id": 1770875164337,
-    "name": "1234",
-    "lastUpdated": "2026-02-12",
-    "nextReminder": "2026-02-13",
-    "days": 1,
-    "createdAt": "2026-02-12T05:46:04.337Z",
-    "lastNotified": "2026-02-12T05:46:55.073Z",
-    "notified": false,
-    "enabled": true
   }
 ]
