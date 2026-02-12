@@ -1,138 +1,47 @@
 name: 定时提醒系统
 
+# 触发条件配置 - 必须这样写！
 on:
   schedule:
-    # 每3分钟运行一次
-    - cron: '*/3 * * * *'
-  workflow_dispatch:
+    - cron: '*/3 * * * *'   # 每3分钟自动运行
+  workflow_dispatch:         # 手动触发
 
 jobs:
   send-reminder:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
+      - name: 📥 检出代码
         uses: actions/checkout@v3
-        
-      - name: 发送Telegram提醒
+        with:
+          fetch-depth: 1
+          
+      - name: 🤖 发送提醒
         env:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "==================================="
-          echo "🚀 定时提醒系统开始运行"
-          echo "==================================="
+          echo "=================================="
+          echo "✅ 定时提醒系统启动成功"
+          echo "=================================="
           echo "⏰ 当前时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
-          echo "🔔 触发方式: ${{ github.event_name }}"
+          echo "🎯 触发方式: ${{ github.event_name }}"
           echo ""
           
-          # 1. 读取提醒数据
-          if [ -f "reminders.json" ]; then
-            echo "📦 找到提醒数据文件"
-            cat reminders.json
+          # 发送测试消息，验证Telegram是否正常
+          echo "📤 发送测试消息到Telegram..."
+          
+          curl -s -X POST \
+            "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "text=✅ 定时提醒系统已启动！%0A⏰ 时间: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')%0A🎯 触发方式: ${{ github.event_name }}"
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Telegram发送成功"
           else
-            echo "📝 提醒文件不存在，跳过"
-            exit 0
+            echo "❌ Telegram发送失败，请检查Secrets"
           fi
           
-          # 2. 使用Node.js处理提醒
-          node << 'EOF'
-          const fs = require('fs');
-          const https = require('https');
-
-          // 北京时间
-          const now = new Date();
-          now.setHours(now.getHours() + 8);
-          const today = now.toISOString().split('T')[0];
-          
-          console.log(`📅 今日日期: ${today}`);
-          
-          // 读取提醒
-          let reminders = [];
-          try {
-            reminders = JSON.parse(fs.readFileSync('reminders.json'));
-            console.log(`📋 总提醒数: ${reminders.length}`);
-          } catch (e) {
-            console.log('❌ 读取失败');
-            process.exit(0);
-          }
-          
-          // 找出今日到期
-          const dueList = reminders.filter(r => 
-            r.enabled !== false && r.nextReminder === today
-          );
-          
-          console.log(`🔔 今日到期: ${dueList.length}个`);
-          
-          if (dueList.length === 0) {
-            console.log('ℹ️ 今日无到期提醒');
-            process.exit(0);
-          }
-          
-          // 发送Telegram
-          const token = process.env.TOKEN;
-          const chatId = process.env.CHAT_ID;
-          
-          let message = '🔔 *定时提醒系统*\n';
-          message += '═══════════════\n';
-          message += `⏰ 时间: ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}\n`;
-          message += `📅 到期: ${dueList.length}个项目\n\n`;
-          
-          dueList.forEach((item, i) => {
-            message += `${i+1}. *${item.name}*\n`;
-            message += `   周期: ${item.days}天\n`;
-            
-            // 计算下次提醒
-            const next = new Date(today);
-            next.setDate(next.getDate() + item.days);
-            const nextStr = next.toISOString().split('T')[0];
-            message += `   下次: ${nextStr}\n\n`;
-            
-            // 更新数据
-            item.lastUpdated = today;
-            item.nextReminder = nextStr;
-            item.notified = true;
-            item.lastSentTime = new Date().toISOString();
-          });
-          
-          message += '═══════════════\n';
-          message += '✅ 处理完成后请登录网页更新状态';
-          
-          const url = `https://api.telegram.org/bot${token}/sendMessage`;
-          const data = JSON.stringify({
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'Markdown'
-          });
-          
-          const req = https.request(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(data)
-            }
-          }, (res) => {
-            let resp = '';
-            res.on('data', chunk => resp += chunk);
-            res.on('end', () => {
-              const result = JSON.parse(resp);
-              if (result.ok) {
-                console.log('✅ 发送成功');
-                fs.writeFileSync('reminders.json', JSON.stringify(reminders, null, 2));
-                console.log('💾 数据已更新');
-              }
-            });
-          });
-          
-          req.on('error', (e) => console.log('❌ 发送失败:', e.message));
-          req.write(data);
-          req.end();
-          
-          EOF
-          
-      - name: 提交更新
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add reminders.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "📅 自动更新提醒状态"
-          git push
+          echo ""
+          echo "=================================="
+          echo "✨ 执行完成"
+          echo "=================================="
