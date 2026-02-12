@@ -33,17 +33,6 @@
     "enabled": true
   },
   {
-    "id": 1770800941049,
-    "name": "111",
-    "lastUpdated": "2026-02-12",
-    "nextReminder": "2026-02-13",
-    "days": 1,
-    "createdAt": "2026-02-11T09:09:01.049Z",
-    "lastNotified": "2026-02-12T04:08:39.237Z",
-    "notified": false,
-    "enabled": true
-  },
-  {
     "id": 1770869507701,
     "name": "111",
     "lastUpdated": "2026-02-11",
