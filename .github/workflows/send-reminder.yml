@@ -2,8 +2,8 @@ name: 🤖 Telegram定时提醒
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # 每天11:00自动运行
-  workflow_dispatch:      # 手动触发
+    - cron: '*/5 * * * *'  # 改成每5分钟运行一次（测试用）
+  workflow_dispatch:
 
 jobs:
   send-reminder:
