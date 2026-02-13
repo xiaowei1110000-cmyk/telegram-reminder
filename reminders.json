@@ -20,5 +20,16 @@
     "notified": false,
     "createdAt": "2026-02-13T13:03:46.992Z",
     "lastSentTime": null
+  },
+  {
+    "id": 1770988365673,
+    "name": "短信域名池，WG后台域名池，客服链接",
+    "lastUpdated": "2026-02-10",
+    "nextReminder": "2026-02-15",
+    "days": 5,
+    "enabled": true,
+    "notified": false,
+    "createdAt": "2026-02-13T13:12:45.673Z",
+    "lastSentTime": null
   }
 ]
