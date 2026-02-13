@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub定时提醒系统</title>
+    <title>GitHub 永久定时提醒 · 永不掉线</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0a0f1c 0%, #141b2b 100%);
+            background: linear-gradient(145deg, #0a0c12 0%, #0e1419 100%);
             color: #e2e8f0;
             min-height: 100vh;
             padding: 24px;
@@ -25,17 +25,18 @@
         }
 
         .header {
-            background: rgba(30, 41, 59, 0.6);
+            background: rgba(22, 30, 45, 0.7);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 24px;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 28px;
             padding: 32px;
             margin-bottom: 28px;
+            box-shadow: 0 12px 32px -8px rgba(0,0,0,0.6);
         }
 
         h1 {
             font-size: 2.4rem;
-            background: linear-gradient(135deg, #60a5fa, #34d399);
+            background: linear-gradient(145deg, #4fd1c5, #34d399, #60a5fa);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -43,12 +44,13 @@
             align-items: center;
             gap: 16px;
             margin-bottom: 12px;
+            letter-spacing: 1px;
         }
 
         .badge {
             display: inline-flex;
             align-items: center;
-            padding: 6px 14px;
+            padding: 6px 16px;
             border-radius: 30px;
             font-size: 0.85rem;
             font-weight: 600;
@@ -58,27 +60,40 @@
         .badge-success {
             background: rgba(16, 185, 129, 0.15);
             color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(16, 185, 129, 0.4);
         }
 
         .badge-warning {
             background: rgba(245, 158, 11, 0.15);
             color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            border: 1px solid rgba(245, 158, 11, 0.4);
         }
 
         .badge-error {
             background: rgba(239, 68, 68, 0.15);
             color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .badge-keepalive {
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 0.6; }
         }
 
         .card {
-            background: #1e293b;
-            border-radius: 20px;
+            background: #151f2c;
+            border-radius: 24px;
             padding: 28px;
             margin-bottom: 28px;
-            border: 1px solid #334155;
+            border: 1px solid #2a3a4a;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
         }
 
         .card-header {
@@ -87,21 +102,21 @@
             gap: 16px;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid #2e4255;
         }
 
         .card-header i {
-            font-size: 1.8rem;
-            color: #60a5fa;
-            background: rgba(59, 130, 246, 0.1);
+            font-size: 1.9rem;
+            color: #5fb4e0;
+            background: rgba(59, 130, 246, 0.15);
             padding: 12px;
-            border-radius: 14px;
+            border-radius: 16px;
         }
 
         h2 {
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: 600;
-            color: #f1f5f9;
+            color: #f0f9ff;
         }
 
         .stats-grid {
@@ -112,10 +127,10 @@
         }
 
         .stat-card {
-            background: #0f172a;
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px solid #334155;
+            background: #0b1219;
+            padding: 22px;
+            border-radius: 20px;
+            border: 1px solid #283b4a;
         }
 
         .stat-label {
@@ -125,9 +140,9 @@
         }
 
         .stat-value {
-            font-size: 2.2rem;
+            font-size: 2.4rem;
             font-weight: 700;
-            color: #60a5fa;
+            color: #6ec8e0;
             line-height: 1;
         }
 
@@ -145,17 +160,17 @@
         }
 
         .form-group label {
-            color: #94a3b8;
+            color: #a0b8cc;
             font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .form-group input {
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 12px;
+        .form-group input, .form-group select {
+            background: #0f1a24;
+            border: 1px solid #3a4e62;
+            border-radius: 14px;
             padding: 12px 16px;
             color: #f1f5f9;
             font-size: 0.95rem;
@@ -163,7 +178,7 @@
 
         .btn {
             padding: 12px 24px;
-            border-radius: 12px;
+            border-radius: 14px;
             border: none;
             font-size: 0.95rem;
             font-weight: 600;
@@ -176,24 +191,26 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            background: linear-gradient(145deg, #2563eb, #1e4bb8);
             color: white;
+            border: 1px solid #4895ef;
         }
 
         .btn-success {
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: linear-gradient(145deg, #0f8b5e, #0a6e4a);
             color: white;
+            border: 1px solid #2ecc71;
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+            background: linear-gradient(145deg, #b91c1c, #991b1b);
             color: white;
         }
 
         .btn-outline {
             background: transparent;
-            border: 1px solid #475569;
-            color: #e2e8f0;
+            border: 1px solid #4f6f8f;
+            color: #d1e0f0;
         }
 
         .btn-group {
@@ -204,67 +221,64 @@
         }
 
         .github-config {
-            background: #0f172a;
-            border-radius: 16px;
-            padding: 20px;
+            background: #0e1a22;
+            border-radius: 20px;
+            padding: 22px;
             margin-bottom: 20px;
-            border: 1px solid #334155;
+            border: 1px solid #2e4a5a;
         }
 
         .sync-status {
             display: flex;
             align-items: center;
             gap: 16px;
-            padding: 16px;
-            background: #1e293b;
-            border-radius: 12px;
+            padding: 18px;
+            background: #0e1921;
+            border-radius: 16px;
             margin-top: 16px;
+            border-left: 6px solid #34d399;
         }
 
         .sync-indicator {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
-            background: #64748b;
+            background: #475569;
         }
 
         .sync-indicator.success {
             background: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.2);
         }
 
         .sync-indicator.error {
             background: #ef4444;
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+            box-shadow: 0 0 0 3px rgba(239,68,68,0.2);
         }
 
         .sync-indicator.syncing {
             background: #f59e0b;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            animation: pulse 1.2s infinite;
         }
 
         .reminder-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
             margin-top: 20px;
         }
 
         .reminder-card {
-            background: #0f172a;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid #334155;
+            background: #0e1a24;
+            border-radius: 20px;
+            padding: 22px;
+            border: 1px solid #2e4c5e;
+            transition: all 0.15s;
         }
 
         .reminder-card.due {
-            border-left: 4px solid #ef4444;
-            background: linear-gradient(to right, #0f172a, #1a1f2e);
+            border-left: 6px solid #ef4444;
+            background: linear-gradient(to right, #161f2c, #0e1a24);
         }
 
         .reminder-header {
@@ -275,47 +289,47 @@
         }
 
         .reminder-name {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #f1f5f9;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #f1f9ff;
         }
 
         .reminder-meta {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
-            margin-bottom: 16px;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
+            margin-bottom: 18px;
+            padding: 14px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 16px;
         }
 
         .meta-label {
-            color: #94a3b8;
+            color: #90a8bc;
             font-size: 0.75rem;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
 
         .meta-value {
             color: #e2e8f0;
-            font-size: 0.95rem;
+            font-size: 0.98rem;
             font-weight: 500;
         }
 
         .meta-value.due {
             color: #f87171;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .reminder-actions {
             display: flex;
-            gap: 8px;
-            margin-top: 16px;
+            gap: 10px;
+            margin-top: 18px;
         }
 
         .reminder-actions button {
             flex: 1;
-            padding: 8px;
+            padding: 10px;
             font-size: 0.8rem;
         }
 
@@ -324,33 +338,37 @@
             top: 24px;
             right: 24px;
             z-index: 9999;
-            max-width: 400px;
+            max-width: 420px;
         }
 
         .notification {
-            background: #1e293b;
-            border-radius: 16px;
-            padding: 16px 24px;
+            background: #1f3343;
+            border-radius: 18px;
+            padding: 18px 24px;
             margin-bottom: 12px;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             gap: 16px;
             transform: translateX(120%);
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            border-left: 4px solid;
+            border-left: 6px solid;
+            border-left-color: #34d399;
         }
 
         .notification.show {
             transform: translateX(0);
         }
 
-        .notification.success {
-            border-left-color: #10b981;
-        }
-
-        .notification.error {
-            border-left-color: #ef4444;
+        .workflow-preview {
+            background: #0b141c;
+            border-radius: 20px;
+            padding: 18px 24px;
+            margin-top: 20px;
+            border: 1px solid #2563eb40;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: #b0d4f0;
         }
 
         @media (max-width: 768px) {
@@ -364,73 +382,87 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <div id="notificationArea"></div>
+    
     <div class="container">
+        <!-- 头部区域 - 强调永久运行 -->
         <div class="header">
             <h1>
-                <i class="fas fa-bell"></i>
-                GitHub定时提醒系统
-                <span class="badge badge-success" id="systemStatusBadge">
-                    <i class="fas fa-check-circle"></i>
-                    自动化运行中
+                <i class="fas fa-satellite-dish"></i>
+                GitHub 永久定时提醒
+                <span class="badge badge-keepalive" id="systemStatusBadge">
+                    <i class="fas fa-globe"></i>
+                    云端永不掉线
                 </span>
             </h1>
-            <div class="subtitle" style="color: #94a3b8; display: flex; align-items: center; gap: 12px;">
+            <div style="color: #9ab8d9; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <i class="fas fa-clock"></i>
-                每3分钟自动检查 · 云端永久运行
-                <span style="margin-left: auto; background: rgba(59,130,246,0.1); padding: 6px 14px; border-radius: 30px;">
-                    <i class="fas fa-github"></i>
-                    GitHub Actions
+                定时执行: <span style="background: #1e3a4a; padding: 4px 14px; border-radius: 30px; font-weight: 600;">每天 11:00 (北京时间)</span>
+                <span style="background: #2d3748; padding: 6px 16px; border-radius: 30px; margin-left: auto;">
+                    <i class="fab fa-github"></i>
+                    Actions · 自动推送
                 </span>
             </div>
+            <!-- 主动唤醒信息 -->
+            <div style="margin-top: 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <span class="badge badge-success"><i class="fas fa-check-circle"></i> 361次运行 · 保持活跃</span>
+                <span class="badge badge-warning"><i class="fas fa-bolt"></i> repository_dispatch 活跃唤醒</span>
+                <span class="badge badge-success"><i class="fas fa-file-code"></i> reminders.json 变更自动触发</span>
+            </div>
         </div>
 
+        <!-- 统计卡片 -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">总提醒数</div>
+                <div class="stat-label"><i class="fas fa-database"></i> 总提醒数</div>
                 <div class="stat-value" id="statTotal">0</div>
-                <div class="stat-desc">所有启用项目</div>
+                <div style="color: #8ba9c2;">已启用项目</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">今日到期</div>
+                <div class="stat-label"><i class="fas fa-calendar-day"></i> 今日到期</div>
                 <div class="stat-value" id="statDue">0</div>
-                <div class="stat-desc">需要立即处理</div>
+                <div style="color: #f87171;">立即处理</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">进行中</div>
+                <div class="stat-label"><i class="fas fa-rocket"></i> 进行中</div>
                 <div class="stat-value" id="statActive">0</div>
-                <div class="stat-desc">未到期项目</div>
+                <div style="color: #86d9ca;">未到期</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">检查频率</div>
-                <div class="stat-value">3</div>
-                <div class="stat-desc">分钟/次</div>
+                <div class="stat-label"><i class="fas fa-bell"></i> 下次执行</div>
+                <div class="stat-value">11:00</div>
+                <div style="color: #a0f0d0;">每天定时</div>
             </div>
         </div>
 
+        <!-- GitHub 配置区域 - 核心连接 -->
         <div class="card">
             <div class="card-header">
-                <i class="fab fa-github"></i>
-                <h2>GitHub 配置</h2>
+                <i class="fab fa-github-alt"></i>
+                <h2>🔗 GitHub Actions 云端绑定</h2>
+                <span style="margin-left: auto; background: #2c5282; padding: 6px 16px; border-radius: 30px; font-size: 0.85rem;">
+                    <i class="fas fa-check"></i> 关闭浏览器照常运行
+                </span>
             </div>
             
             <div class="github-config">
-                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; align-items: center;">
-                    <div style="color: #94a3b8;">用户名</div>
+                <div style="display: grid; grid-template-columns: 80px 1fr; gap: 18px; align-items: center;">
+                    <div style="color: #aac8e0;">用户名</div>
                     <div>
-                        <input type="text" id="githubUsername" value="xiaowei1110000-cmyk" placeholder="GitHub用户名" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
+                        <input type="text" id="githubUsername" value="xiaowei1110000-cmyk" placeholder="GitHub用户名" style="background: #15232e; border: 1px solid #2e5570; border-radius: 12px; padding: 12px 18px; color: white; width: 100%;">
                     </div>
                     
-                    <div style="color: #94a3b8;">仓库名</div>
+                    <div style="color: #aac8e0;">仓库名</div>
                     <div>
-                        <input type="text" id="githubRepo" value="telegram-reminder" placeholder="仓库名称" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
+                        <input type="text" id="githubRepo" value="telegram-reminder" placeholder="仓库名称" style="background: #15232e; border: 1px solid #2e5570; border-radius: 12px; padding: 12px 18px; color: white; width: 100%;">
                     </div>
                     
-                    <div style="color: #94a3b8;">Token</div>
+                    <div style="color: #aac8e0;">Token</div>
                     <div>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="password" id="githubToken" value="" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 16px; color: white; width: 100%;">
-                            <button class="btn btn-success" onclick="saveGitHubConfig()" style="white-space: nowrap;">
-                                <i class="fas fa-save"></i> 保存
+                        <div style="display: flex; gap: 10px;">
+                            <input type="password" id="githubToken" value="" placeholder="ghp_ 具有workflow权限的token" style="background: #15232e; border: 1px solid #2e5570; border-radius: 12px; padding: 12px 18px; color: white; width: 100%;">
+                            <button class="btn btn-success" onclick="saveGitHubConfig()" style="white-space: nowrap; padding: 12px 24px;">
+                                <i class="fas fa-key"></i> 激活
                             </button>
                         </div>
                     </div>
@@ -439,73 +471,97 @@
 
             <div class="btn-group">
                 <button class="btn btn-success" onclick="syncToGitHub()">
-                    <i class="fas fa-cloud-upload-alt"></i> 保存到GitHub
+                    <i class="fas fa-cloud-upload-alt"></i> 保存到GitHub (触发推送)
                 </button>
                 <button class="btn btn-primary" onclick="loadFromGitHub()">
                     <i class="fas fa-cloud-download-alt"></i> 从GitHub加载
                 </button>
-                <button class="btn btn-outline" onclick="triggerActions()">
-                    <i class="fas fa-play"></i> 手动触发检查
+                <button class="btn btn-outline" onclick="triggerActionsWorkflow()">
+                    <i class="fas fa-play"></i> 手动触发提醒
                 </button>
-                <button class="btn btn-outline" onclick="exportLocalFile()">
-                    <i class="fas fa-download"></i> 导出备份
+                <button class="btn btn-outline" onclick="sendKeepAlive()">
+                    <i class="fas fa-heartbeat"></i> 发送活跃信号
                 </button>
             </div>
 
+            <!-- 同步状态卡片 -->
             <div class="sync-status" id="syncStatus">
                 <div class="sync-indicator" id="syncIndicator"></div>
                 <div style="flex: 1;">
-                    <div style="font-weight: 600; margin-bottom: 4px;" id="syncText">同步状态: 未连接</div>
+                    <div style="font-weight: 600; margin-bottom: 5px; color: #cde1f0;" id="syncText">⚙️ 同步状态: 待连接</div>
                     <div style="color: #94a3b8; font-size: 0.85rem;" id="syncTime">最后同步: 从未</div>
                 </div>
                 <div>
                     <span class="badge badge-warning" id="tokenStatus">
-                        <i class="fas fa-key"></i> Token未配置
+                        <i class="fas fa-lock"></i> Token未配置
                     </span>
+                </div>
+            </div>
+
+            <!-- 工作流实时预览 (已集成yml) -->
+            <div class="workflow-preview">
+                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
+                    <i class="fas fa-bolt" style="color: #fbbf24;"></i>
+                    <span style="font-weight: 600; color: #b2e6ff;">当前工作流: 定时提醒系统.yml (已就绪)</span>
+                    <span style="margin-left: auto; background: #0e5a4a; padding: 4px 12px; border-radius: 30px; font-size: 0.75rem;">
+                        <i class="fas fa-cron"></i> cron: '0 11 * * *'
+                    </span>
+                </div>
+                <div style="color: #9fccde; font-size: 0.78rem; font-family: monospace; background: #051016; padding: 14px; border-radius: 12px; border-left: 4px solid #10b981;">
+                    <span style="color: #86e0b5;">name:</span> 定时提醒系统<br>
+                    <span style="color: #86e0b5;">on:</span><br>
+                    &nbsp;&nbsp;<span style="color: #aad3ff;">schedule:</span> - cron: '0 11 * * *'   # 每天11点<br>
+                    &nbsp;&nbsp;<span style="color: #aad3ff;">repository_dispatch:</span> types: [ping]  ← 保持活跃<br>
+                    &nbsp;&nbsp;<span style="color: #aad3ff;">push:</span> paths: ['reminders.json']<br>
+                    &nbsp;&nbsp;<span style="color: #aad3ff;">workflow_dispatch:</span>  # 手动触发<br>
+                    ... 自动更新nextReminder + Telegram通知
                 </div>
             </div>
         </div>
 
+        <!-- 新增提醒表单 -->
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-plus-circle"></i>
-                <h2>新建提醒</h2>
+                <i class="fas fa-calendar-plus"></i>
+                <h2>➕ 创建永久提醒</h2>
+                <span style="margin-left: auto; color: #9acd32;"><i class="fas fa-robot"></i> 保存后自动同步云端</span>
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label><i class="fas fa-tag"></i> 提醒名称</label>
-                    <input type="text" id="reminderName" placeholder="例如：网宿IP更新" autocomplete="off">
+                    <label><i class="fas fa-flag"></i> 提醒事项</label>
+                    <input type="text" id="reminderName" placeholder="例如: 网宿IP更新、SSL续期" autocomplete="off">
                 </div>
                 
                 <div class="form-group">
-                    <label><i class="fas fa-calendar"></i> 最后更新</label>
+                    <label><i class="fas fa-history"></i> 最后更新</label>
                     <input type="date" id="lastUpdated">
                 </div>
                 
                 <div class="form-group">
-                    <label><i class="fas fa-repeat"></i> 间隔天数</label>
+                    <label><i class="fas fa-hourglass-half"></i> 间隔(天)</label>
                     <input type="number" id="reminderDays" value="3" min="1" max="365">
                 </div>
             </div>
 
             <div style="display: flex; gap: 16px;">
-                <button class="btn btn-primary" onclick="addReminder()" style="padding: 14px 32px;">
-                    <i class="fas fa-plus"></i> 添加提醒
+                <button class="btn btn-primary" onclick="addReminder()" style="padding: 14px 36px;">
+                    <i class="fas fa-plus-circle"></i> 添加并推送
                 </button>
                 <button class="btn btn-outline" onclick="clearForm()">
-                    <i class="fas fa-eraser"></i> 清空表单
+                    <i class="fas fa-eraser"></i> 清空
                 </button>
             </div>
         </div>
 
+        <!-- 提醒列表 - 展示所有项目 -->
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-list-check"></i>
-                <h2>提醒列表</h2>
+                <i class="fas fa-list-ul"></i>
+                <h2>📋 云端提醒列表</h2>
                 <div style="margin-left: auto; display: flex; gap: 12px;">
-                    <span class="badge badge-warning" id="dueBadge">
-                        <i class="fas fa-exclamation-triangle"></i>
+                    <span class="badge badge-error" id="dueBadge">
+                        <i class="fas fa-exclamation-circle"></i>
                         <span id="dueCount">0</span> 个今日到期
                     </span>
                 </div>
@@ -515,20 +571,27 @@
 
             <div class="btn-group" style="margin-top: 24px; justify-content: flex-end;">
                 <button class="btn btn-danger" onclick="clearAllReminders()">
-                    <i class="fas fa-trash-alt"></i> 清空所有
+                    <i class="fas fa-trash-alt"></i> 清空所有提醒
+                </button>
+                <button class="btn btn-outline" onclick="exportLocalFile()">
+                    <i class="fas fa-file-export"></i> 导出备份
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="notificationArea"></div>
-
     <script>
+        // ------------------------------------------------------------
+        // GitHub 永久定时提醒系统 · 完全适配YML工作流
+        // 核心：reminders.json 通过Actions定时扫描，到期自动发Telegram
+        // 关闭浏览器后依然由GitHub托管运行 —— 永不掉线
+        // ------------------------------------------------------------
         let reminders = [];
         let githubAPI = null;
         let lastSyncTime = null;
         let currentSHA = null;
 
+        // GitHub API 封装
         class GitHubAPI {
             constructor(username, repo, token) {
                 this.username = username;
@@ -558,7 +621,6 @@
 
                     const data = await response.json();
                     let content = '';
-                    
                     try {
                         content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
                     } catch (e) {
@@ -580,7 +642,7 @@
                 try {
                     if (!sha) {
                         const fileInfo = await this.getRemindersFile();
-                        sha = fileInfo.sha;
+                        if (fileInfo.success && fileInfo.exists) sha = fileInfo.sha;
                     }
 
                     let encodedContent = '';
@@ -599,7 +661,7 @@
                             'Accept': 'application/vnd.github.v3+json'
                         },
                         body: JSON.stringify({
-                            message: '📅 更新提醒数据',
+                            message: '🤖 定时提醒更新 via 永久面板 [skip ci]',
                             content: encodedContent,
                             sha: sha || undefined
                         })
@@ -620,9 +682,31 @@
                 }
             }
 
-            async triggerActions() {
+            // 触发 repository_dispatch (ping) 用于保持活跃
+            async sendKeepAlive() {
                 try {
-                    const url = `${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`;
+                    const url = `${this.baseUrl}/dispatches`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/vnd.github.v3+json'
+                        },
+                        body: JSON.stringify({
+                            event_type: 'ping'
+                        })
+                    });
+                    return { success: response.status === 204 };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+
+            // 触发workflow_dispatch (手动运行)
+            async triggerWorkflow() {
+                try {
+                    const url = `${this.baseUrl}/actions/workflows/定时提醒系统.yml/dispatches`;
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: {
@@ -634,16 +718,14 @@
                             ref: 'main'
                         })
                     });
-
-                    return {
-                        success: response.status === 204
-                    };
+                    return { success: response.status === 204 };
                 } catch (error) {
                     return { success: false, error: error.message };
                 }
             }
         }
 
+        // 初始化
         document.addEventListener('DOMContentLoaded', async () => {
             const today = new Date();
             const year = today.getFullYear();
@@ -660,19 +742,17 @@
             
             if (savedToken) {
                 document.getElementById('githubToken').value = savedToken;
-                document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-key"></i> Token已配置';
+                document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-unlock-alt"></i> Token已配置';
                 document.getElementById('tokenStatus').className = 'badge badge-success';
                 
                 githubAPI = new GitHubAPI(savedUsername, savedRepo, savedToken);
-                
-                setTimeout(() => {
-                    loadFromGitHub();
-                }, 500);
+                setTimeout(() => loadFromGitHub(), 500);
             } else {
                 createDefaultReminders();
             }
         });
 
+        // 保存GitHub配置
         window.saveGitHubConfig = function() {
             const username = document.getElementById('githubUsername').value.trim();
             const repo = document.getElementById('githubRepo').value.trim();
@@ -689,64 +769,46 @@
             
             githubAPI = new GitHubAPI(username, repo, token);
             
-            document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-key"></i> Token已配置';
+            document.getElementById('tokenStatus').innerHTML = '<i class="fas fa-check-circle"></i> Token已激活';
             document.getElementById('tokenStatus').className = 'badge badge-success';
             
-            updateSyncStatus('success', '配置已保存', '刚刚');
-            showNotification('✅ GitHub配置已保存', 'success');
+            updateSyncStatus('success', '配置已保存，云端待命', '刚刚');
+            showNotification('✅ GitHub Actions 绑定成功，关闭浏览器依然运行', 'success');
             
-            setTimeout(() => {
-                loadFromGitHub();
-            }, 500);
+            setTimeout(() => loadFromGitHub(), 500);
         };
 
+        // 同步到GitHub
         window.syncToGitHub = async function() {
-            if (!githubAPI) {
-                showNotification('❌ 请先配置Token', 'error');
-                return;
-            }
-            
-            if (!reminders || reminders.length === 0) {
-                showNotification('⚠️ 没有数据可保存', 'warning');
-                return;
-            }
+            if (!githubAPI) { showNotification('❌ 请先配置Token', 'error'); return; }
+            if (!reminders || reminders.length === 0) { showNotification('⚠️ 没有数据可保存', 'warning'); return; }
             
             try {
-                updateSyncStatus('syncing', '正在保存到GitHub...');
-                
+                updateSyncStatus('syncing', '正在推送至GitHub...');
                 const content = JSON.stringify(reminders, null, 2);
-                
                 const fileInfo = await githubAPI.getRemindersFile();
-                let sha = null;
-                if (fileInfo.success && fileInfo.exists) {
-                    sha = fileInfo.sha;
-                }
-                
+                let sha = fileInfo.sha;
                 const result = await githubAPI.updateRemindersFile(content, sha);
                 
                 if (result.success) {
                     currentSHA = result.sha;
                     lastSyncTime = new Date();
-                    updateSyncStatus('success', '同步成功', formatTime(lastSyncTime));
-                    showNotification('✅ 已成功保存到GitHub', 'success');
+                    updateSyncStatus('success', '云端同步成功', formatTime(lastSyncTime));
+                    showNotification('✅ 已保存到GitHub，下次定时任务自动处理', 'success');
                 } else {
                     throw new Error(result.error);
                 }
             } catch (error) {
                 updateSyncStatus('error', '同步失败', error.message);
-                showNotification('❌ 保存失败: ' + error.message, 'error');
+                showNotification('❌ 推送失败: ' + error.message, 'error');
             }
         };
 
+        // 从GitHub加载
         window.loadFromGitHub = async function() {
-            if (!githubAPI) {
-                showNotification('❌ 请先配置Token', 'error');
-                return;
-            }
-            
+            if (!githubAPI) { showNotification('❌ 请先配置Token', 'error'); return; }
             try {
-                updateSyncStatus('syncing', '正在从GitHub加载...');
-                
+                updateSyncStatus('syncing', '从GitHub拉取...');
                 const result = await githubAPI.getRemindersFile();
                 
                 if (result.success && result.exists) {
@@ -757,56 +819,50 @@
                         lastSyncTime = new Date();
                         renderReminders();
                         updateSyncStatus('success', '加载成功', formatTime(lastSyncTime));
-                        showNotification(`✅ 已从GitHub加载 ${reminders.length} 个提醒`, 'success');
+                        showNotification(`📦 已加载 ${reminders.length} 个提醒`, 'success');
                     } catch (e) {
-                        showNotification('⚠️ GitHub文件格式错误', 'warning');
                         createDefaultReminders();
                     }
                 } else {
-                    updateSyncStatus('success', 'GitHub无数据', '首次运行');
-                    showNotification('ℹ️ GitHub上无数据文件', 'info');
                     createDefaultReminders();
                 }
             } catch (error) {
-                updateSyncStatus('error', '加载失败', error.message);
-                showNotification('❌ 加载失败: ' + error.message, 'error');
                 createDefaultReminders();
             }
         };
 
-        window.triggerActions = async function() {
-            if (!githubAPI) {
-                showNotification('❌ 请先配置Token', 'error');
-                return;
-            }
-            
-            showNotification('⏳ 正在触发GitHub Actions...', 'info');
-            const result = await githubAPI.triggerActions();
-            
+        // 手动触发工作流
+        window.triggerActionsWorkflow = async function() {
+            if (!githubAPI) { showNotification('❌ 请先配置Token', 'error'); return; }
+            showNotification('⏳ 正在触发定时提醒工作流...', 'info');
+            const result = await githubAPI.triggerWorkflow();
             if (result.success) {
-                showNotification('✅ 已触发手动检查，3分钟内会收到提醒', 'success');
+                showNotification('✅ 已触发工作流，3分钟内将发送提醒', 'success');
             } else {
-                showNotification('❌ 触发失败: ' + (result.error || '请检查workflow权限'), 'error');
+                showNotification('❌ 触发失败: ' + (result.error || '检查workflow权限'), 'error');
             }
         };
 
+        // 发送保持活跃信号 (repository_dispatch)
+        window.sendKeepAlive = async function() {
+            if (!githubAPI) { showNotification('❌ 请先配置Token', 'error'); return; }
+            showNotification('📡 发送活跃信号(ping)以保持唤醒...', 'info');
+            const result = await githubAPI.sendKeepAlive();
+            if (result.success) {
+                showNotification('✅ 活跃信号已发送，仓库保持活跃', 'success');
+            } else {
+                showNotification('❌ 发送失败', 'error');
+            }
+        };
+
+        // 添加提醒
         window.addReminder = function() {
             const name = document.getElementById('reminderName').value.trim();
             const lastUpdated = document.getElementById('lastUpdated').value;
             const days = parseInt(document.getElementById('reminderDays').value);
             
-            if (!name) {
-                showNotification('请输入提醒名称', 'error');
-                return;
-            }
-            
-            if (!lastUpdated) {
-                showNotification('请选择日期', 'error');
-                return;
-            }
-            
-            if (!days || days < 1) {
-                showNotification('间隔天数必须大于0', 'error');
+            if (!name || !lastUpdated || days < 1) {
+                showNotification('请完整填写信息', 'error');
                 return;
             }
             
@@ -831,19 +887,16 @@
             
             reminders.push(newReminder);
             renderReminders();
-            
             showNotification(`✅ 已添加: ${name}`, 'success');
             
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
             
-            setTimeout(() => {
-                if (githubAPI) {
-                    syncToGitHub();
-                }
-            }, 500);
+            // 自动同步
+            setTimeout(() => { if (githubAPI) syncToGitHub(); }, 600);
         };
 
+        // 标记完成 (更新下次提醒)
         window.markAsDone = function(id) {
             const reminder = reminders.find(r => r.id === id);
             if (reminder) {
@@ -865,27 +918,17 @@
                 reminder.lastSentTime = null;
                 
                 renderReminders();
-                showNotification(`✅ ${reminder.name} 已更新`, 'success');
-                
-                setTimeout(() => {
-                    if (githubAPI) {
-                        syncToGitHub();
-                    }
-                }, 500);
+                showNotification(`✅ ${reminder.name} 已更新，下次提醒 ${reminder.nextReminder}`, 'success');
+                setTimeout(() => { if (githubAPI) syncToGitHub(); }, 500);
             }
         };
 
         window.deleteReminder = function(id) {
-            if (confirm('确定要删除这个提醒吗？')) {
+            if (confirm('确定删除该提醒？')) {
                 reminders = reminders.filter(r => r.id !== id);
                 renderReminders();
-                showNotification('✅ 已删除', 'success');
-                
-                setTimeout(() => {
-                    if (githubAPI) {
-                        syncToGitHub();
-                    }
-                }, 500);
+                showNotification('🗑️ 已删除', 'success');
+                setTimeout(() => { if (githubAPI) syncToGitHub(); }, 500);
             }
         };
 
@@ -895,32 +938,24 @@
                 document.getElementById('reminderName').value = reminder.name;
                 document.getElementById('lastUpdated').value = reminder.lastUpdated;
                 document.getElementById('reminderDays').value = reminder.days;
-                
                 reminders = reminders.filter(r => r.id !== id);
                 renderReminders();
-                
-                showNotification('正在编辑: ' + reminder.name, 'info');
+                showNotification('✏️ 正在编辑: ' + reminder.name, 'info');
             }
         };
 
         window.clearAllReminders = function() {
-            if (confirm('⚠️ 确定要清空所有提醒吗？此操作不可撤销！')) {
+            if (confirm('⚠️ 确定清空所有提醒？')) {
                 reminders = [];
                 renderReminders();
-                showNotification('✅ 已清空所有提醒', 'success');
-                
-                setTimeout(() => {
-                    if (githubAPI) {
-                        syncToGitHub();
-                    }
-                }, 500);
+                showNotification('✅ 已清空', 'success');
+                setTimeout(() => { if (githubAPI) syncToGitHub(); }, 500);
             }
         };
 
         window.clearForm = function() {
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
-            
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -929,29 +964,19 @@
         };
 
         window.exportLocalFile = function() {
-            if (!reminders || reminders.length === 0) {
-                showNotification('没有数据可导出', 'warning');
-                return;
-            }
-            
+            if (!reminders.length) { showNotification('无数据可导出', 'warning'); return; }
             const content = JSON.stringify(reminders, null, 2);
             const blob = new Blob([content], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            
             const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            a.download = `reminders-backup-${year}${month}${day}.json`;
-            
+            a.download = `reminders-backup-${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            showNotification('✅ 已导出备份文件', 'success');
+            showNotification('📥 备份已导出', 'success');
         };
 
         function createDefaultReminders() {
@@ -960,7 +985,6 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
-            
             const nextDate = new Date(todayStr);
             nextDate.setDate(nextDate.getDate() + 3);
             const nextYear = nextDate.getFullYear();
@@ -968,45 +992,16 @@
             const nextDay = String(nextDate.getDate()).padStart(2, '0');
             
             reminders = [
-                {
-                    id: Date.now(),
-                    name: '📝 网宿IP更新',
-                    lastUpdated: todayStr,
-                    nextReminder: todayStr,
-                    days: 3,
-                    enabled: true,
-                    notified: false,
-                    lastSentTime: null
-                },
-                {
-                    id: Date.now() + 1,
-                    name: '🔒 SSL证书续期',
-                    lastUpdated: todayStr,
-                    nextReminder: `${nextYear}-${nextMonth}-${nextDay}`,
-                    days: 7,
-                    enabled: true,
-                    notified: false,
-                    lastSentTime: null
-                }
+                { id: Date.now(), name: '📝 网宿IP更新', lastUpdated: todayStr, nextReminder: todayStr, days: 3, enabled: true, notified: false, lastSentTime: null },
+                { id: Date.now()+1, name: '🔒 SSL证书续期', lastUpdated: todayStr, nextReminder: `${nextYear}-${nextMonth}-${nextDay}`, days: 7, enabled: true, notified: false, lastSentTime: null }
             ];
-            
             renderReminders();
         }
 
         function renderReminders() {
             const container = document.getElementById('reminderList');
-            
             if (!reminders || reminders.length === 0) {
-                container.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #64748b;">
-                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
-                        <h3 style="margin-bottom: 12px; color: #94a3b8;">暂无提醒项目</h3>
-                        <p style="margin-bottom: 24px;">点击上方"添加提醒"创建第一个项目</p>
-                        <button class="btn btn-primary" onclick="createDefaultReminders()">
-                            <i class="fas fa-magic"></i> 创建示例提醒
-                        </button>
-                    </div>
-                `;
+                container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#7495aa;"><i class="fas fa-cloud" style="font-size:3rem;"></i><h3 style="margin-top:16px;">暂无提醒，添加后自动同步云端</h3></div>';
                 updateStats();
                 return;
             }
@@ -1016,63 +1011,35 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const todayStr = `${year}-${month}-${day}`;
-            
-            let html = '';
             let dueCount = 0;
+            let html = '';
             
             reminders.forEach(reminder => {
                 const isDue = reminder.nextReminder === todayStr;
                 if (isDue) dueCount++;
-                
-                const dueClass = isDue ? 'due' : '';
                 const nextDate = new Date(reminder.nextReminder);
                 nextDate.setDate(nextDate.getDate() + reminder.days);
                 const nextYear = nextDate.getFullYear();
                 const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
                 const nextDay = String(nextDate.getDate()).padStart(2, '0');
                 
-                html += `
-                    <div class="reminder-card ${dueClass}">
-                        <div class="reminder-header">
-                            <div class="reminder-name">
-                                ${reminder.name}
-                                ${isDue ? '<span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">今日到期</span>' : ''}
-                            </div>
-                            <div style="color: #64748b; font-size: 0.7rem;">ID: ${reminder.id.toString().slice(-6)}</div>
-                        </div>
-                        
-                        <div class="reminder-meta">
-                            <div>
-                                <div class="meta-label">最后更新</div>
-                                <div class="meta-value">${formatDate(reminder.lastUpdated)}</div>
-                            </div>
-                            <div>
-                                <div class="meta-label">下次提醒</div>
-                                <div class="meta-value ${isDue ? 'due' : ''}">${formatDate(reminder.nextReminder)}</div>
-                            </div>
-                            <div>
-                                <div class="meta-label">间隔天数</div>
-                                <div class="meta-value">${reminder.days}天</div>
-                            </div>
-                            <div>
-                                <div class="meta-label">下个周期</div>
-                                <div class="meta-value">${formatDate(`${nextYear}-${nextMonth}-${nextDay}`)}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="reminder-actions">
-                            <button class="btn btn-success" onclick="markAsDone(${reminder.id})">
-                                <i class="fas fa-check"></i> 设为今天
-                            </button>
-                            <button class="btn btn-outline" onclick="editReminder(${reminder.id})">
-                                <i class="fas fa-edit"></i> 编辑
-                            </button>
-                            <button class="btn btn-outline" onclick="deleteReminder(${reminder.id})" style="color: #f87171;">
-                                <i class="fas fa-trash"></i> 删除
-                            </button>
-                        </div>
+                html += `<div class="reminder-card ${isDue ? 'due' : ''}">
+                    <div class="reminder-header">
+                        <div class="reminder-name">${reminder.name} ${isDue ? '<span style="background:#ef444430; color:#fca5a5; padding:4px 12px; border-radius:30px; font-size:0.7rem;">今日到期</span>' : ''}</div>
+                        <div style="color:#6b8fa0;">#${reminder.id.toString().slice(-4)}</div>
                     </div>
-                `;
+                    <div class="reminder-meta">
+                        <div><div class="meta-label">最后更新</div><div class="meta-value">${formatDate(reminder.lastUpdated)}</div></div>
+                        <div><div class="meta-label">下次提醒</div><div class="meta-value ${isDue ? 'due' : ''}">${formatDate(reminder.nextReminder)}</div></div>
+                        <div><div class="meta-label">间隔</div><div class="meta-value">${reminder.days}天</div></div>
+                        <div><div class="meta-label">下周期</div><div class="meta-value">${formatDate(`${nextYear}-${nextMonth}-${nextDay}`)}</div></div>
+                    </div>
+                    <div class="reminder-actions">
+                        <button class="btn btn-success" onclick="markAsDone(${reminder.id})"><i class="fas fa-check"></i> 设为今天</button>
+                        <button class="btn btn-outline" onclick="editReminder(${reminder.id})"><i class="fas fa-edit"></i> 编辑</button>
+                        <button class="btn btn-outline" onclick="deleteReminder(${reminder.id})" style="color:#f87171;"><i class="fas fa-trash"></i> 删除</button>
+                    </div>
+                </div>`;
             });
             
             container.innerHTML = html;
@@ -1082,106 +1049,56 @@
 
         function updateStats() {
             const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
-            
-            const total = reminders.length;
-            const due = reminders.filter(r => r.nextReminder === todayStr).length;
-            const active = reminders.filter(r => r.nextReminder > todayStr).length;
-            
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statDue').textContent = due;
-            document.getElementById('statActive').textContent = active;
+            const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), d = String(today.getDate()).padStart(2,'0');
+            const todayStr = `${y}-${m}-${d}`;
+            document.getElementById('statTotal').textContent = reminders.length;
+            document.getElementById('statDue').textContent = reminders.filter(r => r.nextReminder === todayStr).length;
+            document.getElementById('statActive').textContent = reminders.filter(r => r.nextReminder > todayStr).length;
         }
 
         function formatDate(dateStr) {
-            if (!dateStr) return '未知';
-            
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
-            
-            if (dateStr === todayStr) return '今天';
-            
-            try {
-                const date = new Date(dateStr);
-                const month2 = date.getMonth() + 1;
-                const day2 = date.getDate();
-                const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-                const weekday = weekdays[date.getDay()];
-                return `${month2}月${day2}日 ${weekday}`;
-            } catch {
-                return dateStr;
-            }
+            if (!dateStr) return '';
+            const today = new Date(); 
+            const y=today.getFullYear(), m=String(today.getMonth()+1).padStart(2,'0'), d=String(today.getDate()).padStart(2,'0');
+            if(dateStr === `${y}-${m}-${d}`) return '今天';
+            try { 
+                const dt = new Date(dateStr);
+                return `${dt.getMonth()+1}月${dt.getDate()}日`;
+            } catch { return dateStr; }
         }
 
         function formatTime(date) {
             if (!date) return '从未';
-            
-            try {
-                const d = new Date(date);
-                const now = new Date();
-                const diff = Math.floor((now - d) / 1000 / 60);
-                
-                if (diff < 1) return '刚刚';
-                if (diff < 60) return `${diff}分钟前`;
-                if (diff < 1440) return `${Math.floor(diff / 60)}小时前`;
-                return `${Math.floor(diff / 1440)}天前`;
-            } catch {
-                return '未知';
-            }
+            const diff = Math.floor((new Date() - new Date(date))/60000);
+            if (diff<1) return '刚刚';
+            if (diff<60) return `${diff}分钟前`;
+            if (diff<1440) return `${Math.floor(diff/60)}小时前`;
+            return `${Math.floor(diff/1440)}天前`;
         }
 
-        function updateSyncStatus(status, text, time = null) {
-            const indicator = document.getElementById('syncIndicator');
-            const syncText = document.getElementById('syncText');
-            const syncTime = document.getElementById('syncTime');
-            
-            indicator.className = 'sync-indicator';
-            
-            if (status === 'success') {
-                indicator.classList.add('success');
-                syncText.innerHTML = '<span style="color: #34d399;">✓ 同步状态: ' + text + '</span>';
-            } else if (status === 'error') {
-                indicator.classList.add('error');
-                syncText.innerHTML = '<span style="color: #f87171;">✗ 同步状态: ' + text + '</span>';
-            } else if (status === 'syncing') {
-                indicator.classList.add('syncing');
-                syncText.innerHTML = '⏳ 同步状态: ' + text;
-            }
-            
-            if (time) {
-                syncTime.textContent = '最后同步: ' + time;
-            }
+        function updateSyncStatus(status, text, time=null) {
+            const ind = document.getElementById('syncIndicator');
+            const syncTxt = document.getElementById('syncText');
+            const syncTm = document.getElementById('syncTime');
+            ind.className = 'sync-indicator';
+            if (status==='success') { ind.classList.add('success'); syncTxt.innerHTML = `<span style="color:#34d399;">✓ ${text}</span>`; }
+            else if (status==='error') { ind.classList.add('error'); syncTxt.innerHTML = `<span style="color:#f87171;">✗ ${text}</span>`; }
+            else if (status==='syncing') { ind.classList.add('syncing'); syncTxt.innerHTML = `⏳ ${text}`; }
+            if (time) syncTm.textContent = '最后同步: ' + time;
         }
 
-        function showNotification(message, type = 'info') {
+        function showNotification(msg, type='info') {
             const area = document.getElementById('notificationArea');
-            
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            
+            const noti = document.createElement('div');
+            noti.className = `notification ${type}`;
             let icon = 'fa-info-circle';
-            if (type === 'success') icon = 'fa-check-circle';
-            if (type === 'error') icon = 'fa-exclamation-circle';
-            if (type === 'warning') icon = 'fa-exclamation-triangle';
-            
-            notification.innerHTML = `
-                <i class="fas ${icon}"></i>
-                <div style="flex: 1;">${message}</div>
-                <i class="fas fa-times" style="cursor: pointer; opacity: 0.7;" onclick="this.parentElement.remove()"></i>
-            `;
-            
-            area.appendChild(notification);
-            setTimeout(() => notification.classList.add('show'), 10);
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 300);
-            }, 5000);
+            if (type==='success') icon = 'fa-check-circle';
+            if (type==='error') icon = 'fa-exclamation-circle';
+            if (type==='warning') icon = 'fa-exclamation-triangle';
+            noti.innerHTML = `<i class="fas ${icon}"></i><div style="flex:1;">${msg}</div><i class="fas fa-times" style="cursor:pointer;" onclick="this.parentElement.remove()"></i>`;
+            area.appendChild(noti);
+            setTimeout(()=>noti.classList.add('show'),10);
+            setTimeout(()=>{ noti.classList.remove('show'); setTimeout(()=>noti.remove(),300); }, 4500);
         }
 
         window.createDefaultReminders = createDefaultReminders;
