@@ -11,25 +11,14 @@
     "lastSentTime": "2026-02-13T16:02:52+08:00"
   },
   {
-    "id": 1770987757201,
-    "name": "ppppp",
-    "lastUpdated": "2026-02-13",
-    "nextReminder": "2026-02-16",
-    "days": 3,
-    "enabled": true,
-    "notified": true,
-    "createdAt": "2026-02-13T13:02:37.201Z",
-    "lastSentTime": "2026-02-13T21:03:43+08:00"
-  },
-  {
-    "id": 1770987803244,
+    "id": 1770987826992,
     "name": "1111",
     "lastUpdated": "2026-02-13",
     "nextReminder": "2026-02-14",
     "days": 1,
     "enabled": true,
     "notified": false,
-    "createdAt": "2026-02-13T13:03:23.244Z",
+    "createdAt": "2026-02-13T13:03:46.992Z",
     "lastSentTime": null
   }
 ]
