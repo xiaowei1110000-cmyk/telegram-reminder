@@ -31,5 +31,16 @@
     "notified": false,
     "createdAt": "2026-02-13T13:12:45.673Z",
     "lastSentTime": null
+  },
+  {
+    "id": 1770988455398,
+    "name": "停留页，导航页，CPA域名",
+    "lastUpdated": "2026-02-10",
+    "nextReminder": "2026-02-20",
+    "days": 10,
+    "enabled": true,
+    "notified": false,
+    "createdAt": "2026-02-13T13:14:15.398Z",
+    "lastSentTime": null
   }
 ]
