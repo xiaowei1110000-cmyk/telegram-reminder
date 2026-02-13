@@ -20,16 +20,5 @@
     "notified": true,
     "createdAt": "2026-02-13T08:07:25.063Z",
     "lastSentTime": "2026-02-13T20:59:39+08:00"
-  },
-  {
-    "id": 1770987561990,
-    "name": "213123123",
-    "lastUpdated": "2026-02-13",
-    "nextReminder": "2026-02-16",
-    "days": 3,
-    "enabled": true,
-    "notified": true,
-    "createdAt": "2026-02-13T12:59:21.990Z",
-    "lastSentTime": "2026-02-13T20:59:40+08:00"
   }
 ]
