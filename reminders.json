@@ -13,13 +13,13 @@
   {
     "id": 1770987757201,
     "name": "ppppp",
-    "lastUpdated": "2026-02-10",
-    "nextReminder": "2026-02-13",
+    "lastUpdated": "2026-02-13",
+    "nextReminder": "2026-02-16",
     "days": 3,
     "enabled": true,
-    "notified": false,
+    "notified": true,
     "createdAt": "2026-02-13T13:02:37.201Z",
-    "lastSentTime": null
+    "lastSentTime": "2026-02-13T21:03:43+08:00"
   },
   {
     "id": 1770987803244,
