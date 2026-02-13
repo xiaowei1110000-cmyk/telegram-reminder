@@ -1,73 +1,104 @@
 name: 定时提醒系统
 
 on:
+  # 1. 每天早上11点准时提醒（北京时间）
   schedule:
-    - cron: '0 11 * * *'   # 每天早上11点运行
-  workflow_dispatch:         # 手动触发
+    - cron: '0 3 * * *'   # UTC 3:00 = 北京时间 11:00
+  
+  # 2. 手动触发
+  workflow_dispatch:
+  
+  # 3. 当 reminders.json 被推送时自动触发 → 实现【当天新增立即提醒】
   push:
     branches: [ main ]
     paths:
-      - 'reminders.json'     # 数据变更时自动触发
-  repository_dispatch:       # 响应ping事件
-    types: [ping]
+      - 'reminders.json'
+  
+  # 4. 保持活跃信号（防止60天休眠）
+  repository_dispatch:
+    types: [ping, check-reminders]
 
 jobs:
   reminder:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     
     steps:
       - name: 📥 检出代码
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
           
       - name: ⏰ 设置北京时间
         run: |
           sudo timedatectl set-timezone Asia/Shanghai
           echo "TODAY=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
           echo "CURRENT_TIME=$(date '+%H:%M:%S')" >> $GITHUB_ENV
+          echo "CURRENT_HOUR=$(date '+%H')" >> $GITHUB_ENV
+          echo "CURRENT_MINUTE=$(date '+%M')" >> $GITHUB_ENV
           
-      - name: 🤖 自动检查并发送提醒
+      - name: 🤖 智能提醒系统（支持当天新增立即提醒）
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           echo "========================================="
-          echo "🚀 定时提醒系统自动启动"
-          
-          # 判断触发方式
-          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-            echo "🔄 触发方式: 活跃唤醒 (repository_dispatch)"
-          else
-            echo "⏰ 触发方式: 正常定时/手动触发"
-          fi
-          
+          echo "🚀 定时提醒系统 · 智能检测"
           echo "⏰ 北京时间: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "📌 触发方式: ${{ github.event_name }}"
           echo "========================================="
           
-          # 检查提醒文件
+          # 检查提醒文件，不存在则创建空数组
           if [ ! -f "reminders.json" ]; then
-            echo "❌ reminders.json 不存在"
-            exit 0
+            echo "[]" > reminders.json
+            echo "📝 已创建空的 reminders.json"
+            git add reminders.json
+            git commit -m "初始化 reminders.json" || true
+            git push || true
           fi
           
           # 安装 jq
           sudo apt-get update -qq && sudo apt-get install -y jq -qq
           
           TODAY="${{ env.TODAY }}"
-          echo "📅 今天日期: $TODAY"
+          CURRENT_HOUR="${{ env.CURRENT_HOUR }}"
+          CURRENT_MINUTE="${{ env.CURRENT_MINUTE }}"
           
-          # 读取提醒数量
+          echo "📅 今天日期: $TODAY"
+          echo "🕐 当前时间: $CURRENT_HOUR:$CURRENT_MINUTE"
+          
+          # 判断触发场景
+          IS_PUSH_TRIGGER=false
+          IS_MANUAL=false
+          IS_SCHEDULE=false
+          
+          if [ "${{ github.event_name }}" == "push" ]; then
+            IS_PUSH_TRIGGER=true
+            echo "⚡ 触发场景: 推送事件 → 立即检查到期项目"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            IS_MANUAL=true
+            echo "👤 触发场景: 手动运行"
+          elif [ "${{ github.event_name }}" == "schedule" ]; then
+            IS_SCHEDULE=true
+            echo "⏰ 触发场景: 定时任务 (11:00)"
+          else
+            echo "🔄 触发场景: 活跃信号"
+          fi
+          
+          # 读取所有提醒
           COUNT=$(jq '. | length' reminders.json)
-          echo "📋 共有 $COUNT 个提醒"
+          echo "📋 共有 $COUNT 个提醒项目"
           echo ""
           
           SENT=0
           UPDATED=0
           DUE_ITEMS=""
           INDEX=1
+          NEED_COMMIT=false
+          UPDATED_IDS=""
           
           # 遍历所有提醒
           for i in $(seq 0 $((COUNT-1))); do
@@ -76,32 +107,57 @@ jobs:
             DAYS=$(jq -r ".[$i].days" reminders.json)
             LAST=$(jq -r ".[$i].lastUpdated // \"未知\"" reminders.json)
             NOTIFIED=$(jq -r ".[$i].notified // false" reminders.json)
+            ID=$(jq -r ".[$i].id" reminders.json)
             
-            # 如果今天到期
+            # 检查是否是今天到期
             if [ "$NEXT" == "$TODAY" ]; then
               echo "⚠️ 到期提醒: $NAME"
               
               # 添加到到期列表
-              DUE_ITEMS="${DUE_ITEMS}├─ 到期项目: $NAME\n"
+              DUE_ITEMS="${DUE_ITEMS}├─ $NAME (周期: ${DAYS}天)\n"
               
-              # 如果未发送过提醒
+              # ========== 智能提醒策略 ==========
+              # 只要满足以下任一条件就发送提醒：
+              # 1. 从未通知过 (notified == false)
+              # 2. 手动触发 且 已过11点
+              # 3. 推送触发 且 已过11点（当天新增项目）
+              # 4. 定时任务（11:00）正常触发
+              # ==================================
+              
+              SEND_NOW=false
+              
               if [ "$NOTIFIED" == "false" ]; then
-                echo "📤 准备发送Telegram提醒..."
+                SEND_NOW=true
+                echo "  📤 原因: 从未发送过提醒"
+              elif [ "$IS_PUSH_TRIGGER" == "true" ] && [ "$CURRENT_HOUR" -ge 11 ]; then
+                SEND_NOW=true
+                echo "  📤 原因: 推送触发且已过11点 → 当天新增项目立即提醒"
+              elif [ "$IS_MANUAL" == "true" ] && [ "$CURRENT_HOUR" -ge 11 ]; then
+                SEND_NOW=true
+                echo "  📤 原因: 手动触发且已过11点"
+              elif [ "$IS_SCHEDULE" == "true" ]; then
+                SEND_NOW=true
+                echo "  📤 原因: 定时任务执行"
+              fi
+              
+              if [ "$SEND_NOW" == "true" ]; then
+                echo "  📤 正在发送 Telegram 提醒..."
                 
-                # 计算明天日期
-                TOMORROW=$(date -d "$TODAY + 1 day" '+%Y-%m-%d')
+                # 计算下次提醒日期
+                NEXT_DATE=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d')
                 
-                # 构建Telegram消息
-                MESSAGE="╔════════════════════════════╗%0A║  🔔 重要事务提醒 %0A╚════════════════════════════╝%0A%0A"
-                MESSAGE="${MESSAGE}┌─[ #${INDEX} ${NAME} ]%0A"
-                MESSAGE="${MESSAGE}│  📅 上次更新 · ⚪️ ${LAST}%0A"
-                MESSAGE="${MESSAGE}│  ⏰ 提醒时间 · 🔴 今天%0A"
-                MESSAGE="${MESSAGE}│  📊 间隔周期 · ${DAYS}天%0A"
-                MESSAGE="${MESSAGE}│  ⏩ 下次提醒 · 🔴 🟡 ${TOMORROW}%0A"
-                MESSAGE="${MESSAGE}│  ⏱️ 剩余时间 · ⚠️ 今日到期%0A"
-                MESSAGE="${MESSAGE}└⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯┘%0A%0A"
+                # 构建 Telegram 消息
+                MESSAGE="╔════════════════════════════╗%0A"
+                MESSAGE="${MESSAGE}║  🔔 到期事务提醒%0A"
+                MESSAGE="${MESSAGE}╚════════════════════════════╝%0A%0A"
+                MESSAGE="${MESSAGE}📌 <b>${NAME}</b>%0A"
+                MESSAGE="${MESSAGE}├─ 上次更新: ${LAST}%0A"
+                MESSAGE="${MESSAGE}├─ 本次提醒: 今天 ${TODAY}%0A"
+                MESSAGE="${MESSAGE}├─ 间隔周期: ${DAYS} 天%0A"
+                MESSAGE="${MESSAGE}└─ 下次提醒: ${NEXT_DATE}%0A%0A"
+                MESSAGE="${MESSAGE}⚡️ 请及时处理"
                 
-                # 发送Telegram
+                # 发送 Telegram
                 RESPONSE=$(curl -s -X POST \
                   "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
                   -d "chat_id=${TELEGRAM_CHAT_ID}" \
@@ -109,46 +165,52 @@ jobs:
                   -d "parse_mode=HTML")
                 
                 if echo "$RESPONSE" | grep -q '"ok":true'; then
-                  echo "✅ Telegram发送成功"
+                  echo "  ✅ Telegram 发送成功"
                   SENT=$((SENT+1))
                   
-                  # 计算下次提醒日期
-                  NEXT_DATE=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d')
+                  # 更新 JSON 文件
+                  # 1. 更新最后更新日期为今天
+                  # 2. 更新下次提醒日期
+                  # 3. 标记已通知
+                  # 4. 记录发送时间
                   
-                  # 更新JSON - 自动设置下次提醒日期
                   jq ".[$i].lastUpdated = \"$TODAY\"" reminders.json > tmp.json && mv tmp.json reminders.json
                   jq ".[$i].nextReminder = \"$NEXT_DATE\"" reminders.json > tmp.json && mv tmp.json reminders.json
                   jq ".[$i].notified = true" reminders.json > tmp.json && mv tmp.json reminders.json
                   jq ".[$i].lastSentTime = \"$(date -Iseconds)\"" reminders.json > tmp.json && mv tmp.json reminders.json
                   
-                  echo "✅ 下次提醒已更新为: $NEXT_DATE"
+                  echo "  ✅ 下次提醒已更新为: $NEXT_DATE"
                   UPDATED=$((UPDATED+1))
+                  NEED_COMMIT=true
+                  UPDATED_IDS="${UPDATED_IDS}${ID},"
                 else
-                  echo "❌ Telegram发送失败"
+                  echo "  ❌ Telegram 发送失败"
                 fi
               else
-                echo "⏹️ 今天已发送过提醒，不再重复发送"
+                echo "  ⏹️ 今天已发送过提醒，不再重复发送"
               fi
               
               INDEX=$((INDEX+1))
             fi
           done
           
-          # 如果有多个到期项目，发送汇总消息
-          if [ $SENT -gt 0 ] && [ $INDEX -gt 2 ]; then
+          # 发送汇总消息（如果有多个到期项目）
+          if [ $SENT -gt 1 ]; then
             echo ""
             echo "📊 发送汇总消息..."
             
-            SUMMARY="╔════════════════════════════╗%0A║  📊 今日到期汇总 %0A╚════════════════════════════╝%0A%0A"
-            SUMMARY="${SUMMARY}📊 今日需要处理项目%0A"
+            SUMMARY="╔════════════════════════════╗%0A"
+            SUMMARY="${SUMMARY}║  📊 今日到期汇总%0A"
+            SUMMARY="${SUMMARY}╚════════════════════════════╝%0A%0A"
+            SUMMARY="${SUMMARY}共 <b>${SENT}</b> 个项目需要处理：%0A"
             SUMMARY="${SUMMARY}$DUE_ITEMS"
-            SUMMARY="${SUMMARY}%0A⚡️ 发送时间 ${{ env.CURRENT_TIME }}"
+            SUMMARY="${SUMMARY}%0A⏱️ 发送时间: ${{ env.CURRENT_TIME }}"
             
             curl -s -X POST \
               "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${TELEGRAM_CHAT_ID}" \
               -d "text=${SUMMARY}" \
-              -d "parse_mode=HTML"
+              -d "parse_mode=HTML" || true
           fi
           
           echo ""
@@ -158,18 +220,18 @@ jobs:
           echo "   • 更新日期: $UPDATED 个"
           echo ""
           
-          # 提交更新到GitHub
-          if [ $UPDATED -gt 0 ]; then
-            echo "🔄 自动提交更新到GitHub..."
+          # 提交更新到 GitHub
+          if [ "$NEED_COMMIT" == "true" ]; then
+            echo "🔄 自动提交更新到 GitHub..."
             
             git config --global user.name "Reminder Bot"
-            git config --global user.email "bot@reminder.system"
+            git config --global user.email "reminder-bot@users.noreply.github.com"
             
             git add reminders.json
-            git commit -m "🤖 自动更新提醒日期 [$(date '+%Y-%m-%d %H:%M')]"
+            git commit -m "🤖 自动更新提醒日期 [$(date '+%Y-%m-%d %H:%M')] 已通知: ${UPDATED_IDS}" || true
             git push
             
-            echo "✅ GitHub更新成功"
+            echo "✅ GitHub 更新成功"
           else
             echo "ℹ️ 无需更新"
           fi
