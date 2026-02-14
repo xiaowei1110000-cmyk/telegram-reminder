@@ -83,12 +83,6 @@ jobs:
             if [ "$NEXT" == "$TODAY" ]; then
               echo "  ✅ 今天到期"
               
-              # 项目计数加1
-              ITEM_COUNT=$((ITEM_COUNT + 1))
-              
-              # 收集项目名称（使用 %0A 作为换行符）
-              DUE_ITEMS="${DUE_ITEMS}    ${ITEM_COUNT}. ${NAME}%0A"
-              
               # 如果是第一个到期项目，保存共用信息
               if [ "$FIRST_ITEM" == "true" ]; then
                 DUE_LAST="$LAST"
@@ -97,6 +91,18 @@ jobs:
                 DUE_NEXT=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d' 2>/dev/null || echo "$TODAY")
                 FIRST_ITEM=false
               fi
+              
+              # 将项目名称按逗号拆分
+              IFS=',' read -ra NAMES <<< "$NAME"
+              for subname in "${NAMES[@]}"; do
+                # 去除前后空格
+                subname=$(echo "$subname" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+                if [ ! -z "$subname" ]; then
+                  ITEM_COUNT=$((ITEM_COUNT + 1))
+                  # 收集项目名称（使用 %0A 作为换行符）
+                  DUE_ITEMS="${DUE_ITEMS}    ${ITEM_COUNT}. ${subname}%0A"
+                fi
+              done
               
               # 更新日期和通知状态
               if [ "$NOTIFIED" == "false" ]; then
