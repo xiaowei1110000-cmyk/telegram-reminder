@@ -92,8 +92,12 @@ jobs:
                 FIRST_ITEM=false
               fi
               
-              # 将项目名称按逗号拆分
-              IFS=',' read -ra NAMES <<< "$NAME"
+              # 将中文逗号替换为英文逗号，然后拆分
+              # 同时处理中文逗号（，）和英文逗号（,）
+              CLEAN_NAME=$(echo "$NAME" | sed 's/，/,/g')
+              
+              # 按逗号拆分
+              IFS=',' read -ra NAMES <<< "$CLEAN_NAME"
               for subname in "${NAMES[@]}"; do
                 # 去除前后空格
                 subname=$(echo "$subname" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
