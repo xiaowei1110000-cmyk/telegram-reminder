@@ -43,15 +43,15 @@
     "createdAt": "2026-02-14T05:15:43.725Z",
     "lastSentTime": "2026-02-14T13:15:59+08:00"
   },
-  {
+{
     "id": 1771047154146,
     "name": "那次ua，回答搜",
-    "lastUpdated": "2026-02-14",
-    "nextReminder": "2026-02-15",
+    "lastUpdated": "2026-02-13",
+    "nextReminder": "2026-02-14",
     "days": 1,
     "enabled": true,
-    "notified": true,
+    "notified": false,
     "createdAt": "2026-02-14T05:32:34.146Z",
-    "lastSentTime": "2026-02-14T13:32:48+08:00"
-  }
+    "lastSentTime": null
+}
 ]
