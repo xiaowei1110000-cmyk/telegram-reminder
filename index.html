@@ -23,7 +23,6 @@
             margin: 0 auto;
         }
 
-        /* 头部 */
         .header {
             background: linear-gradient(145deg, #0e1a26, #0b151f);
             border: 1px solid #2d4a62;
@@ -78,7 +77,6 @@
             border: 1px solid #c4b5fd80;
         }
 
-        /* 统计卡片 */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -375,7 +373,6 @@
     <div id="notificationArea"></div>
     
     <div class="container">
-        <!-- 头部：强调永久运行 -->
         <div class="header">
             <h1>
                 <i class="fas fa-cloud-upload-alt"></i>
@@ -395,7 +392,6 @@
             </div>
         </div>
 
-        <!-- 统计卡片 - 实时从GitHub加载 -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">📋 总提醒数</div>
@@ -419,7 +415,6 @@
             </div>
         </div>
 
-        <!-- GitHub 绑定区域 - 核心 -->
         <div class="card">
             <div class="card-header">
                 <i class="fab fa-github"></i>
@@ -453,7 +448,6 @@
                 </div>
             </div>
 
-            <!-- 同步状态显示 -->
             <div class="sync-status" id="syncStatus">
                 <div class="sync-indicator" id="syncIndicator"></div>
                 <div style="flex: 1;">
@@ -467,7 +461,6 @@
                 </div>
             </div>
 
-            <!-- 操作按钮组 -->
             <div class="btn-group" style="margin-top: 20px;">
                 <button class="btn btn-primary" onclick="loadFromGitHub()">
                     <i class="fas fa-sync-alt"></i> 刷新云端数据
@@ -484,7 +477,6 @@
             </div>
         </div>
 
-        <!-- 新增提醒 -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-plus-circle"></i>
@@ -521,7 +513,6 @@
             </div>
         </div>
 
-        <!-- 提醒列表 - 实时显示云端数据 -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-list-check"></i>
@@ -543,7 +534,6 @@
             </div>
         </div>
 
-        <!-- 部署指引 -->
         <div class="card" style="background: #0a1a2a; border-color: #2e6f9f;">
             <div class="card-header">
                 <i class="fas fa-rocket"></i>
@@ -580,13 +570,14 @@
 
     <script>
         // ============================================
-        // GitHub 云端提醒系统 · 永久运行
+        // GitHub 云端提醒系统 · 永久运行 (修复API速率限制)
         // ============================================
         
         let reminders = [];
         let githubAPI = null;
         let lastSyncTime = null;
         let currentSHA = null;
+        let pendingSync = false; // 防止重复同步
 
         // GitHub API 封装
         class GitHubAPI {
@@ -595,10 +586,30 @@
                 this.repo = repo;
                 this.token = token;
                 this.baseUrl = `https://api.github.com/repos/${username}/${repo}`;
+                this.lastRequestTime = 0;
+                this.requestCount = 0;
+            }
+
+            // 检查速率限制
+            async checkRateLimit() {
+                const now = Date.now();
+                if (now - this.lastRequestTime < 1000) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                this.lastRequestTime = Date.now();
+                this.requestCount++;
+                
+                if (this.requestCount > 50) {
+                    showNotification('⚠️ 检测到高频请求，稍等片刻...', 'warning');
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    this.requestCount = 0;
+                }
             }
 
             // 获取 reminders.json
             async getRemindersFile() {
+                await this.checkRateLimit();
+                
                 try {
                     const url = `${this.baseUrl}/contents/reminders.json`;
                     const response = await fetch(url, {
@@ -610,6 +621,14 @@
                     
                     if (response.status === 404) {
                         return { success: true, exists: false };
+                    }
+                    
+                    if (response.status === 403) {
+                        const error = await response.json();
+                        if (error.message && error.message.includes('API rate limit')) {
+                            return { success: false, error: 'rate_limit', retryAfter: 60 };
+                        }
+                        throw new Error(error.message || '权限不足');
                     }
                     
                     if (!response.ok) {
@@ -637,12 +656,9 @@
 
             // 更新 reminders.json
             async updateRemindersFile(content, sha = null) {
+                await this.checkRateLimit();
+                
                 try {
-                    if (!sha) {
-                        const fileInfo = await this.getRemindersFile();
-                        if (fileInfo.success && fileInfo.exists) sha = fileInfo.sha;
-                    }
-
                     let encodedContent = '';
                     try {
                         encodedContent = btoa(unescape(encodeURIComponent(content)));
@@ -651,6 +667,16 @@
                     }
 
                     const url = `${this.baseUrl}/contents/reminders.json`;
+                    
+                    // 如果没有提供sha，先尝试获取（但不阻塞）
+                    let finalSha = sha;
+                    if (!finalSha) {
+                        const fileInfo = await this.getRemindersFile();
+                        if (fileInfo.success && fileInfo.exists) {
+                            finalSha = fileInfo.sha;
+                        }
+                    }
+
                     const response = await fetch(url, {
                         method: 'PUT',
                         headers: {
@@ -661,9 +687,17 @@
                         body: JSON.stringify({
                             message: '📅 云端提醒更新 via Web面板',
                             content: encodedContent,
-                            sha: sha || undefined
+                            sha: finalSha || undefined
                         })
                     });
+
+                    if (response.status === 403) {
+                        const error = await response.json();
+                        if (error.message && error.message.includes('API rate limit')) {
+                            return { success: false, error: 'rate_limit', retryAfter: 60 };
+                        }
+                        throw new Error(error.message || '权限不足');
+                    }
 
                     if (!response.ok) {
                         const error = await response.json();
@@ -682,8 +716,10 @@
 
             // 手动触发工作流
             async triggerWorkflow() {
+                await this.checkRateLimit();
+                
                 try {
-                    const url = `${this.baseUrl}/actions/workflows/定时提醒系统.yml/dispatches`;
+                    const url = `${this.baseUrl}/actions/workflows/send-reminder.yml/dispatches`;
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: {
@@ -695,6 +731,11 @@
                             ref: 'main'
                         })
                     });
+                    
+                    if (response.status === 403) {
+                        return { success: false, error: 'rate_limit' };
+                    }
+                    
                     return { success: response.status === 204 };
                 } catch (error) {
                     return { success: false, error: error.message };
@@ -703,6 +744,8 @@
 
             // 发送活跃信号
             async sendKeepAlive() {
+                await this.checkRateLimit();
+                
                 try {
                     const url = `${this.baseUrl}/dispatches`;
                     const response = await fetch(url, {
@@ -716,6 +759,11 @@
                             event_type: 'ping'
                         })
                     });
+                    
+                    if (response.status === 403) {
+                        return { success: false, error: 'rate_limit' };
+                    }
+                    
                     return { success: response.status === 204 };
                 } catch (error) {
                     return { success: false, error: error.message };
@@ -725,14 +773,12 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            // 设置默认日期为今天
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             document.getElementById('lastUpdated').value = `${year}-${month}-${day}`;
             
-            // 读取本地存储的GitHub配置
             const savedUsername = localStorage.getItem('github_username') || 'xiaowei1110000-cmyk';
             const savedRepo = localStorage.getItem('github_repo') || 'telegram-reminder';
             const savedToken = localStorage.getItem('github_token');
@@ -746,10 +792,8 @@
                 document.getElementById('tokenStatus').className = 'badge badge-success';
                 
                 githubAPI = new GitHubAPI(savedUsername, savedRepo, savedToken);
-                // 自动加载云端数据
                 setTimeout(() => loadFromGitHub(), 500);
             } else {
-                // 本地演示数据
                 createDemoReminders();
             }
         });
@@ -777,7 +821,6 @@
             updateSyncStatus('success', '绑定成功，云端待命', '刚刚');
             showNotification('✅ GitHub绑定成功，关闭浏览器后依然自动运行', 'success');
             
-            // 立即加载云端数据
             setTimeout(() => loadFromGitHub(), 500);
         };
 
@@ -793,6 +836,12 @@
                 
                 const result = await githubAPI.getRemindersFile();
                 
+                if (result.error === 'rate_limit') {
+                    updateSyncStatus('error', 'API速率限制，请等待1分钟', '稍后重试');
+                    showNotification('⚠️ GitHub API 速率限制，请等待1分钟后再试', 'warning');
+                    return;
+                }
+                
                 if (result.success && result.exists) {
                     try {
                         const data = JSON.parse(result.content);
@@ -806,7 +855,6 @@
                         createDemoReminders();
                     }
                 } else {
-                    // 文件不存在，创建空数组
                     reminders = [];
                     renderReminders();
                     updateSyncStatus('success', '云端无数据，准备创建', '首次运行');
@@ -825,17 +873,29 @@
                 return;
             }
             
+            if (pendingSync) {
+                showNotification('⏳ 已有同步任务在进行中...', 'info');
+                return;
+            }
+            
             if (!reminders || reminders.length === 0) {
                 showNotification('⚠️ 没有数据可同步', 'warning');
                 return;
             }
             
             try {
+                pendingSync = true;
                 updateSyncStatus('syncing', '正在推送至GitHub...');
                 
                 const content = JSON.stringify(reminders, null, 2);
-                const fileInfo = await githubAPI.getRemindersFile();
-                const result = await githubAPI.updateRemindersFile(content, fileInfo.sha);
+                const result = await githubAPI.updateRemindersFile(content, currentSHA);
+                
+                if (result.error === 'rate_limit') {
+                    updateSyncStatus('error', 'API速率限制，请等待1分钟', '稍后重试');
+                    showNotification('⚠️ GitHub API 速率限制，请等待1分钟后再试', 'warning');
+                    pendingSync = false;
+                    return;
+                }
                 
                 if (result.success) {
                     currentSHA = result.sha;
@@ -848,6 +908,8 @@
             } catch (error) {
                 updateSyncStatus('error', '同步失败', error.message);
                 showNotification('❌ 同步失败: ' + error.message, 'error');
+            } finally {
+                setTimeout(() => { pendingSync = false; }, 2000);
             }
         };
 
@@ -861,44 +923,31 @@
             showNotification('⏳ 正在触发云端提醒任务...', 'info');
             const result = await githubAPI.triggerWorkflow();
             
-            if (result.success) {
+            if (result.error === 'rate_limit') {
+                showNotification('⚠️ API速率限制，请等待1分钟', 'warning');
+            } else if (result.success) {
                 showNotification('✅ 已触发，3分钟内会收到Telegram提醒', 'success');
             } else {
                 showNotification('❌ 触发失败，请检查workflow权限', 'error');
             }
         };
 
-// 发送活跃信号
-window.sendKeepAlive = async function() {
-    if (!githubAPI) {
-        showNotification('❌ 请先绑定GitHub', 'error');
-        return;
-    }
-    
-    const result = await githubAPI.sendKeepAlive();
-    if (result.success) {
-        showNotification('✅ 活跃信号已发送，仓库保持唤醒', 'success');
-    } else {
-        showNotification('❌ 发送失败', 'error');
-    }
-};
-
-// 添加自动发送活跃信号的函数
-function startKeepAlive() {
-    // 每 30 天发送一次活跃信号
-    setInterval(() => {
-        if (githubAPI) {
-            githubAPI.sendKeepAlive();
-            console.log('发送活跃信号:', new Date().toLocaleString());
-        }
-    }, 25 * 24 * 60 * 60 * 1000); // 25天一次
-}
-
-// 在页面加载完成后启动
-document.addEventListener('DOMContentLoaded', () => {
-    // ... 原有代码 ...
-    setTimeout(startKeepAlive, 5000); // 5秒后启动
-});
+        // 发送活跃信号
+        window.sendKeepAlive = async function() {
+            if (!githubAPI) {
+                showNotification('❌ 请先绑定GitHub', 'error');
+                return;
+            }
+            
+            const result = await githubAPI.sendKeepAlive();
+            if (result.error === 'rate_limit') {
+                showNotification('⚠️ API速率限制，请等待1分钟', 'warning');
+            } else if (result.success) {
+                showNotification('✅ 活跃信号已发送，仓库保持唤醒', 'success');
+            } else {
+                showNotification('❌ 发送失败', 'error');
+            }
+        };
 
         // 添加提醒
         window.addReminder = function() {
@@ -921,7 +970,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // 计算下次提醒日期
             const date = new Date(lastUpdated);
             date.setDate(date.getDate() + days);
             const year = date.getFullYear();
@@ -946,16 +994,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             showNotification(`✅ 已添加: ${name}`, 'success');
             
-            // 清空表单
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderDays').value = '3';
             
-            // 自动同步到GitHub
+            // 延迟同步，避免频繁请求
             setTimeout(() => {
                 if (githubAPI) {
                     syncToGitHub();
                 }
-            }, 500);
+            }, 1000);
         };
 
         // 标记为已完成
@@ -984,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     if (githubAPI) syncToGitHub();
-                }, 500);
+                }, 1000);
             }
         };
 
@@ -997,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     if (githubAPI) syncToGitHub();
-                }, 500);
+                }, 1000);
             }
         };
 
@@ -1025,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => {
                     if (githubAPI) syncToGitHub();
-                }, 500);
+                }, 1000);
             }
         };
 
