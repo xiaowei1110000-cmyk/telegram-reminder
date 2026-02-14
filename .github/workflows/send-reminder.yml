@@ -2,8 +2,7 @@ name: 定时提醒系统
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # 每5分钟运行一次（测试用）
-    - cron: '0 3 * * *'      # 每天11:00（正式）
+    - cron: '0 3 * * *'   # UTC 3:00 = 北京时间 11:00
   workflow_dispatch:
   push:
     branches: [ main ]
@@ -24,7 +23,6 @@ jobs:
         run: |
           sudo timedatectl set-timezone Asia/Shanghai
           echo "TODAY=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
-          echo "HOUR=$(date '+%H')" >> $GITHUB_ENV
           
       - name: 检查并发送提醒
         env:
@@ -38,9 +36,7 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y jq -qq
           
           TODAY="${{ env.TODAY }}"
-          HOUR="${{ env.HOUR }}"
           echo "今天日期: $TODAY"
-          echo "当前小时: $HOUR"
           
           # 检查文件
           if [ ! -f "reminders.json" ]; then
@@ -52,7 +48,13 @@ jobs:
           COUNT=$(jq '. | length' reminders.json)
           echo "共有 $COUNT 个提醒项目"
           
-          # 标记是否有更新
+          # 收集今天到期的项目
+          DUE_ITEMS=""
+          DUE_NAMES=""
+          DUE_LAST=""
+          DUE_DAYS=""
+          DUE_NEXT=""
+          FIRST_ITEM=true
           UPDATED=false
           
           # 遍历检查
@@ -66,33 +68,25 @@ jobs:
             if [ "$NEXT" == "$TODAY" ]; then
               echo ""
               echo "到期项目: $NAME"
-              echo "通知状态: $NOTIFIED"
               
-              # 只有在以下情况才发送：
-              # 1. 从未通知过
-              # 2. 或者今天是第一次运行（11点后）
-              if [ "$NOTIFIED" == "false" ] || [ "$HOUR" -ge "11" ]; then
-                echo "发送 Telegram 提醒..."
-                
+              # 收集项目名称（用于列表显示）
+              ITEM_NUM=$(( $(echo "$DUE_ITEMS" | grep -c "item") + 1 ))
+              DUE_ITEMS="${DUE_ITEMS}    ${ITEM_NUM}.${NAME}\n"
+              
+              # 如果是第一个到期项目，保存共用信息
+              if [ "$FIRST_ITEM" == "true" ]; then
+                DUE_LAST="$LAST"
+                DUE_DAYS="$DAYS"
                 # 计算下次提醒
+                DUE_NEXT=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d')
+                FIRST_ITEM=false
+              fi
+              
+              # 只有在从未通知过的情况下才标记需要更新
+              if [ "$NOTIFIED" == "false" ]; then
+                # 更新日期和通知状态
                 NEXT_DATE=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d')
                 
-                # 发送 Telegram
-                MESSAGE="🔔 到期提醒%0A%0A"
-                MESSAGE="${MESSAGE}项目: ${NAME}%0A"
-                MESSAGE="${MESSAGE}上次更新: ${LAST}%0A"
-                MESSAGE="${MESSAGE}本次提醒: 今天 ${TODAY}%0A"
-                MESSAGE="${MESSAGE}下次提醒: ${NEXT_DATE}"
-                
-                curl -s -X POST \
-                  "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-                  -d "chat_id=${TELEGRAM_CHAT_ID}" \
-                  -d "text=${MESSAGE}" \
-                  -d "parse_mode=HTML"
-                
-                echo "✅ 已发送"
-                
-                # 更新日期和通知状态
                 jq ".[$i].lastUpdated = \"$TODAY\"" reminders.json > tmp.json
                 jq ".[$i].nextReminder = \"$NEXT_DATE\"" tmp.json > reminders.json
                 jq ".[$i].notified = true" reminders.json > tmp.json
@@ -100,11 +94,39 @@ jobs:
                 rm tmp.json 2>/dev/null || true
                 
                 UPDATED=true
-              else
-                echo "⏸️ 今天已通知过，不再重复发送"
               fi
             fi
           done
+          
+          # 如果有到期项目，发送合并提醒
+          if [ -n "$DUE_ITEMS" ]; then
+            echo ""
+            echo "发送合并提醒..."
+            
+            # 构建消息（使用指定格式）
+            MESSAGE="╔════════════════════════════╗%0A"
+            MESSAGE="${MESSAGE}║  🔔 到期事务提醒%0A"
+            MESSAGE="${MESSAGE}╚════════════════════════════╝%0A%0A"
+            MESSAGE="${MESSAGE}📌 今日需要处理项目%0A"
+            MESSAGE="${MESSAGE}${DUE_ITEMS}%0A"
+            MESSAGE="${MESSAGE}├─ 上次更新: ${DUE_LAST}%0A"
+            MESSAGE="${MESSAGE}├─ 本次提醒: 今天 ${TODAY}%0A"
+            MESSAGE="${MESSAGE}├─ 间隔周期: ${DUE_DAYS} 天%0A"
+            MESSAGE="${MESSAGE}└─ 下次提醒: ${DUE_NEXT}%0A%0A"
+            MESSAGE="${MESSAGE}⚡️ 请及时处理"
+            
+            # 发送 Telegram
+            curl -s -X POST \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=${MESSAGE}" \
+              -d "parse_mode=HTML"
+            
+            echo "✅ 合并提醒已发送"
+          else
+            echo ""
+            echo "ℹ️ 今天没有到期项目"
+          fi
           
           # 如果有更新，提交到 GitHub
           if [ "$UPDATED" == "true" ]; then
