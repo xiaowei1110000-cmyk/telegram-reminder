@@ -44,8 +44,18 @@ jobs:
             exit 1
           fi
           
-          # 读取提醒
-          COUNT=$(jq '. | length' reminders.json)
+          # 显示文件内容（调试用）
+          echo "文件内容:"
+          cat reminders.json
+          echo ""
+          
+          # 读取提醒数量
+          COUNT=$(jq '. | length' reminders.json 2>/dev/null || echo "0")
+          if [ "$COUNT" == "0" ]; then
+            echo "没有提醒项目或文件为空"
+            exit 0
+          fi
+          
           echo "共有 $COUNT 个提醒项目"
           
           # 收集今天到期的项目
@@ -59,41 +69,53 @@ jobs:
           
           # 遍历检查
           for i in $(seq 0 $((COUNT-1))); do
-            NAME=$(jq -r ".[$i].name" reminders.json)
-            NEXT=$(jq -r ".[$i].nextReminder" reminders.json)
-            DAYS=$(jq -r ".[$i].days" reminders.json)
-            LAST=$(jq -r ".[$i].lastUpdated" reminders.json)
-            NOTIFIED=$(jq -r ".[$i].notified // false" reminders.json)
+            # 使用临时文件避免管道错误
+            NAME=$(jq -r ".[$i].name // empty" reminders.json 2>/dev/null)
+            NEXT=$(jq -r ".[$i].nextReminder // empty" reminders.json 2>/dev/null)
+            DAYS=$(jq -r ".[$i].days // 0" reminders.json 2>/dev/null)
+            LAST=$(jq -r ".[$i].lastUpdated // empty" reminders.json 2>/dev/null)
+            NOTIFIED=$(jq -r ".[$i].notified // false" reminders.json 2>/dev/null)
+            
+            # 跳过空项目
+            if [ -z "$NAME" ] || [ -z "$NEXT" ]; then
+              continue
+            fi
+            
+            echo ""
+            echo "检查项目: $NAME"
+            echo "  下次提醒: $NEXT"
+            echo "  通知状态: $NOTIFIED"
             
             if [ "$NEXT" == "$TODAY" ]; then
-              echo ""
-              echo "到期项目: $NAME"
+              echo "  ✅ 今天到期"
               
-              # 收集项目名称（用于列表显示）
-              ITEM_NUM=$(( $(echo "$DUE_ITEMS" | grep -c "item") + 1 ))
-              DUE_ITEMS="${DUE_ITEMS}    ${ITEM_NUM}.${NAME}\n"
+              # 收集项目名称
+              DUE_ITEMS="${DUE_ITEMS}    $(( $(echo "$DUE_ITEMS" | wc -l) + 1 )). ${NAME}\n"
               
               # 如果是第一个到期项目，保存共用信息
               if [ "$FIRST_ITEM" == "true" ]; then
                 DUE_LAST="$LAST"
                 DUE_DAYS="$DAYS"
                 # 计算下次提醒
-                DUE_NEXT=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d')
+                DUE_NEXT=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d' 2>/dev/null || echo "$TODAY")
                 FIRST_ITEM=false
               fi
               
-              # 只有在从未通知过的情况下才标记需要更新
+              # 更新日期和通知状态
               if [ "$NOTIFIED" == "false" ]; then
-                # 更新日期和通知状态
-                NEXT_DATE=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d')
+                NEXT_DATE=$(date -d "$TODAY + $DAYS days" '+%Y-%m-%d' 2>/dev/null || echo "$TODAY")
                 
-                jq ".[$i].lastUpdated = \"$TODAY\"" reminders.json > tmp.json
-                jq ".[$i].nextReminder = \"$NEXT_DATE\"" tmp.json > reminders.json
-                jq ".[$i].notified = true" reminders.json > tmp.json
-                jq ".[$i].lastSentTime = \"$(date -Iseconds)\"" tmp.json > reminders.json
-                rm tmp.json 2>/dev/null || true
+                # 创建临时文件更新 JSON
+                jq ".[$i].lastUpdated = \"$TODAY\"" reminders.json > tmp1.json
+                jq ".[$i].nextReminder = \"$NEXT_DATE\"" tmp1.json > tmp2.json
+                jq ".[$i].notified = true" tmp2.json > tmp3.json
+                jq ".[$i].lastSentTime = \"$(date -Iseconds)\"" tmp3.json > reminders.json
+                rm -f tmp1.json tmp2.json tmp3.json
                 
                 UPDATED=true
+                echo "  ✅ 已更新"
+              else
+                echo "  ⏸️ 今天已通知过"
               fi
             fi
           done
@@ -103,26 +125,30 @@ jobs:
             echo ""
             echo "发送合并提醒..."
             
-            # 构建消息（使用指定格式）
+            # 构建消息
             MESSAGE="╔════════════════════════════╗%0A"
             MESSAGE="${MESSAGE}║  🔔 到期事务提醒%0A"
             MESSAGE="${MESSAGE}╚════════════════════════════╝%0A%0A"
             MESSAGE="${MESSAGE}📌 今日需要处理项目%0A"
             MESSAGE="${MESSAGE}${DUE_ITEMS}%0A"
-            MESSAGE="${MESSAGE}├─ 上次更新: ${DUE_LAST}%0A"
+            MESSAGE="${MESSAGE}├─ 上次更新: ${DUE_LAST:-未知}%0A"
             MESSAGE="${MESSAGE}├─ 本次提醒: 今天 ${TODAY}%0A"
-            MESSAGE="${MESSAGE}├─ 间隔周期: ${DUE_DAYS} 天%0A"
-            MESSAGE="${MESSAGE}└─ 下次提醒: ${DUE_NEXT}%0A%0A"
+            MESSAGE="${MESSAGE}├─ 间隔周期: ${DUE_DAYS:-0} 天%0A"
+            MESSAGE="${MESSAGE}└─ 下次提醒: ${DUE_NEXT:-${TODAY}}%0A%0A"
             MESSAGE="${MESSAGE}⚡️ 请及时处理"
             
             # 发送 Telegram
-            curl -s -X POST \
+            RESPONSE=$(curl -s -X POST \
               "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d "chat_id=${TELEGRAM_CHAT_ID}" \
               -d "text=${MESSAGE}" \
-              -d "parse_mode=HTML"
+              -d "parse_mode=HTML")
             
-            echo "✅ 合并提醒已发送"
+            if echo "$RESPONSE" | grep -q '"ok":true'; then
+              echo "✅ 合并提醒发送成功"
+            else
+              echo "❌ 发送失败: $RESPONSE"
+            fi
           else
             echo ""
             echo "ℹ️ 今天没有到期项目"
