@@ -868,20 +868,37 @@
             }
         };
 
-        // 发送活跃信号
-        window.sendKeepAlive = async function() {
-            if (!githubAPI) {
-                showNotification('❌ 请先绑定GitHub', 'error');
-                return;
-            }
-            
-            const result = await githubAPI.sendKeepAlive();
-            if (result.success) {
-                showNotification('✅ 活跃信号已发送，仓库保持唤醒', 'success');
-            } else {
-                showNotification('❌ 发送失败', 'error');
-            }
-        };
+// 发送活跃信号
+window.sendKeepAlive = async function() {
+    if (!githubAPI) {
+        showNotification('❌ 请先绑定GitHub', 'error');
+        return;
+    }
+    
+    const result = await githubAPI.sendKeepAlive();
+    if (result.success) {
+        showNotification('✅ 活跃信号已发送，仓库保持唤醒', 'success');
+    } else {
+        showNotification('❌ 发送失败', 'error');
+    }
+};
+
+// 添加自动发送活跃信号的函数
+function startKeepAlive() {
+    // 每 30 天发送一次活跃信号
+    setInterval(() => {
+        if (githubAPI) {
+            githubAPI.sendKeepAlive();
+            console.log('发送活跃信号:', new Date().toLocaleString());
+        }
+    }, 25 * 24 * 60 * 60 * 1000); // 25天一次
+}
+
+// 在页面加载完成后启动
+document.addEventListener('DOMContentLoaded', () => {
+    // ... 原有代码 ...
+    setTimeout(startKeepAlive, 5000); // 5秒后启动
+});
 
         // 添加提醒
         window.addReminder = function() {
