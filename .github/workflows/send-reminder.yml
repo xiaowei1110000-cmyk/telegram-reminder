@@ -2,7 +2,7 @@ name: 定时提醒系统
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # UTC 3:00 = 北京时间 11:00
+    - cron: '*/5 * * * *'   # 每5分钟运行一次
   workflow_dispatch:
   push:
     branches: [ main ]
