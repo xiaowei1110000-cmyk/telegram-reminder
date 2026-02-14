@@ -104,7 +104,7 @@ jobs:
                 echo "✅ 发送成功"
                 SENT=$((SENT+1))
                 
-                # 更新 JSON（使用临时文件避免并发问题）
+                # 更新 JSON
                 jq ".[$i].lastUpdated = \"$TODAY\"" $TMP_FILE > tmp2.json && mv tmp2.json $TMP_FILE
                 jq ".[$i].nextReminder = \"$NEXT_DATE\"" $TMP_FILE > tmp2.json && mv tmp2.json $TMP_FILE
                 jq ".[$i].notified = true" $TMP_FILE > tmp2.json && mv tmp2.json $TMP_FILE
