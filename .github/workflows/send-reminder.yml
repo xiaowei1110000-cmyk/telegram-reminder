@@ -44,14 +44,9 @@ jobs:
             exit 1
           fi
           
-          # 显示文件内容（调试用）
-          echo "文件内容:"
-          cat reminders.json
-          echo ""
-          
           # 读取提醒数量
           COUNT=$(jq '. | length' reminders.json 2>/dev/null || echo "0")
-          if [ "$COUNT" == "0" ]; then
+          if [ "$COUNT" == "0" ] || [ "$COUNT" == "null" ]; then
             echo "没有提醒项目或文件为空"
             exit 0
           fi
@@ -60,16 +55,16 @@ jobs:
           
           # 收集今天到期的项目
           DUE_ITEMS=""
-          DUE_NAMES=""
           DUE_LAST=""
           DUE_DAYS=""
           DUE_NEXT=""
           FIRST_ITEM=true
           UPDATED=false
+          ITEM_COUNT=0
           
           # 遍历检查
           for i in $(seq 0 $((COUNT-1))); do
-            # 使用临时文件避免管道错误
+            # 读取字段
             NAME=$(jq -r ".[$i].name // empty" reminders.json 2>/dev/null)
             NEXT=$(jq -r ".[$i].nextReminder // empty" reminders.json 2>/dev/null)
             DAYS=$(jq -r ".[$i].days // 0" reminders.json 2>/dev/null)
@@ -84,13 +79,15 @@ jobs:
             echo ""
             echo "检查项目: $NAME"
             echo "  下次提醒: $NEXT"
-            echo "  通知状态: $NOTIFIED"
             
             if [ "$NEXT" == "$TODAY" ]; then
               echo "  ✅ 今天到期"
               
-              # 收集项目名称
-              DUE_ITEMS="${DUE_ITEMS}    $(( $(echo "$DUE_ITEMS" | wc -l) + 1 )). ${NAME}\n"
+              # 项目计数加1
+              ITEM_COUNT=$((ITEM_COUNT + 1))
+              
+              # 收集项目名称（使用 %0A 作为换行符）
+              DUE_ITEMS="${DUE_ITEMS}    ${ITEM_COUNT}. ${NAME}%0A"
               
               # 如果是第一个到期项目，保存共用信息
               if [ "$FIRST_ITEM" == "true" ]; then
@@ -121,16 +118,16 @@ jobs:
           done
           
           # 如果有到期项目，发送合并提醒
-          if [ -n "$DUE_ITEMS" ]; then
+          if [ $ITEM_COUNT -gt 0 ]; then
             echo ""
-            echo "发送合并提醒..."
+            echo "发送合并提醒（共 $ITEM_COUNT 个项目）..."
             
-            # 构建消息
+            # 构建消息（使用 %0A 作为换行符）
             MESSAGE="╔════════════════════════════╗%0A"
             MESSAGE="${MESSAGE}║  🔔 到期事务提醒%0A"
             MESSAGE="${MESSAGE}╚════════════════════════════╝%0A%0A"
             MESSAGE="${MESSAGE}📌 今日需要处理项目%0A"
-            MESSAGE="${MESSAGE}${DUE_ITEMS}%0A"
+            MESSAGE="${MESSAGE}${DUE_ITEMS}"
             MESSAGE="${MESSAGE}├─ 上次更新: ${DUE_LAST:-未知}%0A"
             MESSAGE="${MESSAGE}├─ 本次提醒: 今天 ${TODAY}%0A"
             MESSAGE="${MESSAGE}├─ 间隔周期: ${DUE_DAYS:-0} 天%0A"
