@@ -46,12 +46,12 @@
   {
     "id": 1771046619006,
     "name": "较好的撒大家，嗲是都",
-    "lastUpdated": "2026-02-13",
-    "nextReminder": "2026-02-14",
+    "lastUpdated": "2026-02-14",
+    "nextReminder": "2026-02-15",
     "days": 1,
     "enabled": true,
-    "notified": false,
+    "notified": true,
     "createdAt": "2026-02-14T05:23:39.006Z",
-    "lastSentTime": null
+    "lastSentTime": "2026-02-14T13:23:54+08:00"
   }
 ]
