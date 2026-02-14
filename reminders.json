@@ -42,16 +42,5 @@
     "notified": false,
     "createdAt": "2026-02-13T13:14:15.398Z",
     "lastSentTime": null
-  },
-  {
-    "id": 1771043574960,
-    "name": "343423423",
-    "lastUpdated": "2026-02-14",
-    "nextReminder": "2026-02-15",
-    "days": 1,
-    "enabled": true,
-    "notified": true,
-    "createdAt": "2026-02-14T04:32:54.960Z",
-    "lastSentTime": "2026-02-14T12:33:09+08:00"
   }
 ]
