@@ -11,17 +11,6 @@
     "lastSentTime": "2026-02-13T16:02:52+08:00"
   },
   {
-    "id": 1770987826992,
-    "name": "1111",
-    "lastUpdated": "2026-02-14",
-    "nextReminder": "2026-02-15",
-    "days": 1,
-    "enabled": true,
-    "notified": true,
-    "createdAt": "2026-02-13T13:03:46.992Z",
-    "lastSentTime": "2026-02-14T12:27:54+08:00"
-  },
-  {
     "id": 1770988365673,
     "name": "短信域名池，WG后台域名池，客服链接",
     "lastUpdated": "2026-02-10",
